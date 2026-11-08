@@ -89,6 +89,12 @@ body {
     var(--on-base);
   -webkit-mask-image: radial-gradient(circle closest-side, #000 calc(var(--spread) - 25%), transparent var(--spread));
           mask-image: radial-gradient(circle closest-side, #000 calc(var(--spread) - 25%), transparent var(--spread));
+  filter: brightness(1.3) saturate(1.2);
+}
+
+/* Give every active lens a stronger core and a more visible colored spill. */
+.lens.on .leds {
+  box-shadow: 0 0 0 2px #050506, inset 0 0 11px rgba(255,255,255,.18), inset 0 0 8px rgba(0,0,0,.45);
 }
 
 /* ---------- Layer 3: glass shine, never animated ---------- */
@@ -101,9 +107,7 @@ body {
 
 /* ---------- Outer glow, separate from the housing ---------- */
 .halo {
-  position: absolute; inset: -16px; border-radius: 50%; z-index: -1;
-  opacity: 0; pointer-events: none;
-  background: radial-gradient(circle, rgba(var(--glow),.40) 0, rgba(var(--glow),.16) 48%, transparent 70%);
+  display: none;
 }
 
 /* ---------- Manual control buttons ---------- */
@@ -111,6 +115,11 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+  padding: 0 8px;
+  box-sizing: border-box;
+  max-width: 390px;
   gap: 6px;
   -webkit-app-region: no-drag;
 }
@@ -127,6 +136,9 @@ body {
 .controls .r { border-bottom: 3px solid #ff1f2e; }
 .controls .y { border-bottom: 3px solid #ffb000; }
 .controls .g { border-bottom: 3px solid #00e676; }
+.controls .blink-r { border-bottom: 3px dashed #ff1f2e; }
+.controls .blink-y { border-bottom: 3px dashed #ffb000; }
+.controls .blink-g { border-bottom: 3px dashed #00e676; }
 .controls .off { border-bottom: 3px solid #94979d; }
 .controls button[aria-pressed="true"] {
   color: #fff;

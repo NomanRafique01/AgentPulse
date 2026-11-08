@@ -23,7 +23,7 @@ function setInstant(lens, on) {
   gsap.set(halo, { opacity: on ? 0.8 : 0 });
 }
 
-// "think" = slow breathing, "ask" = fast blinking
+// "think" = slow breathing, "ask" = fast blinking, "blink" = regular blinking
 function pulse(lens, mode) {
   if (reduce) return;                      // reduced motion: stay steady
   const { lit, halo } = layers(lens);
@@ -39,6 +39,12 @@ function pulse(lens, mode) {
       .to(lit,  { opacity: 1,    duration: 0.12, ease: "power1.out" }, 0.28)
       .to(halo, { opacity: 0.9,  duration: 0.12, ease: "power1.out" }, 0.28)
       .to({}, { duration: 0.3 });
+  } else if (mode === "blink") {
+    tl = gsap.timeline({ repeat: -1, repeatDelay: 0.15 });
+    tl.to(lit,  { opacity: 0.06, duration: 0.38, ease: "sine.inOut" }, 0)
+      .to(halo, { opacity: 0,    duration: 0.38, ease: "sine.inOut" }, 0)
+      .to(lit,  { opacity: 1,    duration: 0.38, ease: "sine.inOut" }, 0.38)
+      .to(halo, { opacity: 0.8,  duration: 0.38, ease: "sine.inOut" }, 0.38);
   }
   if (tl) jobs.set(lens, tl);
 }
@@ -86,15 +92,16 @@ lenses.forEach(l => {
 });
 
 // The one function that changes the light.
-// Names: red, yellow, green, think, ask, off
+// Names: red, yellow, green, blink-red, blink-yellow, blink-green, think, ask, off
 function setActive(name) {
-  const mode  = (name === "think" || name === "ask") ? name : "";
-  const color = mode ? "yellow" : name;
+  const blink = /^blink-(red|yellow|green)$/.exec(name);
+  const mode  = blink ? "blink" : (name === "think" || name === "ask") ? name : "";
+  const color = blink ? blink[1] : mode ? "yellow" : name;
 
   lenses.forEach(l => {
     const on      = l.classList.contains(color);
     const wasOn   = l.dataset.lit === "1";
-    const newMode = (on && l === yellow) ? mode : "";
+    const newMode = (on && (mode === "blink" || l === yellow)) ? mode : "";
 
     l.classList.toggle("on", on);
     l.dataset.lit = on ? "1" : "0";
@@ -122,8 +129,11 @@ document.querySelectorAll(".controls button").forEach(b => {
   b.addEventListener("click", () => setActive(b.dataset.light));
 });
 
-// Keyboard: 1 red, 2 yellow, 3 green, 4 thinking, 5 question, 0 off
+// Keyboard: 1 red, 2 yellow, 3 green, 4 thinking, 5 question, 6/7/8 blink red/yellow/green, 0 off
 document.addEventListener("keydown", e => {
-  const map = { "1": "red", "2": "yellow", "3": "green", "4": "think", "5": "ask", "0": "off" };
+  const map = {
+    "1": "red", "2": "yellow", "3": "green", "4": "think", "5": "ask",
+    "6": "blink-red", "7": "blink-yellow", "8": "blink-green", "0": "off"
+  };
   if (map[e.key]) setActive(map[e.key]);
 });

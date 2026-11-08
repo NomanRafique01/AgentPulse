@@ -51,9 +51,9 @@
     });
   }
 
-  // Yellow: quiet low pulse
+  // Yellow: clear, quick attention pulse
   function pulse() {
-    tone(196, 0, 0.9, 0.12);
+    tone(330, 0, 0.28, 0.55, "triangle");
   }
 
   // Question: three-beep alert
@@ -95,9 +95,11 @@
       chime();
     } else if (name === "red") {
       bell();
-    } else if (name === "yellow" || name === "think") {
+    } else if (name === "yellow") {
       pulse();
-      pulseTimer = setInterval(pulse, 2800);   // matches the slow breathing
+    } else if (name === "think") {
+      pulse();
+      pulseTimer = setInterval(pulse, 750);
     } else if (name === "ask") {
       ask();
       askTimer = setInterval(ask, 30000);      // repeats every 30 seconds
