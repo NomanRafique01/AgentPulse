@@ -1,0 +1,15 @@
+{
+  "name": "traffic-signal",
+  "version": "1.0.0",
+  "description": "Slim LED traffic signal with GSAP animation",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "gsap": "^3.12.5"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0"
+  }
+}

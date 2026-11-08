@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Traffic Signal</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="signal">
+    <div class="lens red on"><div class="halo"></div><div class="leds"><div class="lit"></div><div class="sheen"></div></div></div>
+    <div class="lens yellow"><div class="halo"></div><div class="leds"><div class="lit"></div><div class="sheen"></div></div></div>
+    <div class="lens green"><div class="halo"></div><div class="leds"><div class="lit"></div><div class="sheen"></div></div></div>
+  </div>
+
+  <div class="controls" role="group" aria-label="Manual light controls">
+    <button class="r" data-light="red" aria-pressed="true">Red</button>
+    <button class="y" data-light="yellow" aria-pressed="false">Yellow</button>
+    <button class="g" data-light="green" aria-pressed="false">Green</button>
+    <button class="off" data-light="off" aria-pressed="false">Off</button>
+  </div>
+
+  <script src="node_modules/gsap/dist/gsap.min.js"></script>
+  <script src="sound.js"></script>
+  <script src="signal.js"></script>
+</body>
+</html>

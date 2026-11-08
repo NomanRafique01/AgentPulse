@@ -1,0 +1,136 @@
+/* Lets the browser animate the spread value smoothly */
+@property --spread { syntax: "<percentage>"; inherits: false; initial-value: 0%; }
+
+body {
+  margin: 0; height: 100vh; overflow: hidden;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-start; gap: 10px; padding-top: 8px;
+  background: transparent;
+}
+
+/* ---------- Housing (never animated) ---------- */
+.signal {
+  position: relative;
+  width: 306px; height: 100px; padding: 0 30px; box-sizing: border-box;
+  zoom: 0.5;
+  -webkit-app-region: drag;
+  display: flex; align-items: center; justify-content: center; gap: 24px;
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 18%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.018) 0 1px, rgba(0,0,0,.02) 1px 3px),
+    linear-gradient(180deg, #34363b 0%, #1e1f23 40%, #121316 100%);
+  box-shadow:
+    0 0 0 1px #0b0b0c,
+    0 0 0 2px #4a4d53,
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 -2px 4px rgba(0,0,0,.75),
+    inset 2px 0 3px rgba(255,255,255,.04),
+    inset -2px 0 3px rgba(0,0,0,.4),
+    0 14px 22px rgba(0,0,0,.55),
+    0 3px 5px rgba(0,0,0,.6);
+}
+
+.signal::before {
+  content: ""; position: absolute; inset: 4px; border-radius: 18px;
+  pointer-events: none;
+  border: 1px solid rgba(0,0,0,.55);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 1px 0 rgba(255,255,255,.06);
+}
+
+.signal::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  pointer-events: none;
+  --s: radial-gradient(circle, #a9acb2 0 1px, #5a5c61 1.5px 2.4px, #0e0e10 2.9px, transparent 3.4px);
+  background:
+    var(--s) no-repeat left 8px top 8px / 8px 8px,
+    var(--s) no-repeat right 8px top 8px / 8px 8px,
+    var(--s) no-repeat left 8px bottom 8px / 8px 8px,
+    var(--s) no-repeat right 8px bottom 8px / 8px 8px;
+}
+
+/* ---------- Lens with thin metal ring ---------- */
+.lens {
+  position: relative; isolation: isolate;
+  width: 66px; height: 66px; box-sizing: border-box; padding: 4px;
+
+  border-radius: 50%;
+  background: linear-gradient(145deg, #a0a3a9, #3b3d41 55%, #1b1c1f);
+  box-shadow:
+    inset 0 0 0 1px rgba(0,0,0,.5),
+    0 0 0 3px #060607,
+    0 0 0 4px rgba(255,255,255,.08),
+    0 3px 6px 3px rgba(0,0,0,.6);
+}
+
+/* ---------- Colors: off look, on look, glow color ---------- */
+.red    { --hi:#6b2a2e; --mid:#4a0d12; --edge:#1a0306; --base:#0b0405;
+          --on-hi:#ffb3b8; --on-mid:#ff1f2e; --on-edge:#8a0010; --on-base:#3a0509; --glow:255,30,40; }
+.yellow { --hi:#6b5a2a; --mid:#4a3305; --edge:#1a1002; --base:#0b0802;
+          --on-hi:#fff0b0; --on-mid:#ffb000; --on-edge:#8a5a00; --on-base:#3a2703; --glow:255,176,0; }
+.green  { --hi:#2a6b45; --mid:#07381e; --edge:#021308; --base:#030b06;
+          --on-hi:#c0ffdc; --on-mid:#00e676; --on-edge:#00662f; --on-base:#04361a; --glow:0,230,118; }
+
+/* ---------- Layer 1: dark LEDs, always visible ---------- */
+.leds {
+  position: relative; width: 100%; height: 100%;
+  border-radius: 50%; overflow: hidden;
+  box-shadow: 0 0 0 2px #050506, inset 0 0 8px rgba(0,0,0,.85);
+  background:
+    radial-gradient(circle at center, var(--hi) 0, var(--mid) .9px, var(--edge) 1.9px, transparent 2.15px) center / 5px 5px,
+    var(--base);
+}
+
+/* ---------- Layer 2: bright LEDs, GSAP fades and spreads this ---------- */
+.lit {
+  position: absolute; inset: 0; opacity: 0; --spread: 0%;
+  background:
+    radial-gradient(circle at center, var(--on-hi) 0, var(--on-mid) .9px, var(--on-edge) 1.9px, transparent 2.15px) center / 5px 5px,
+    var(--on-base);
+  -webkit-mask-image: radial-gradient(circle closest-side, #000 calc(var(--spread) - 25%), transparent var(--spread));
+          mask-image: radial-gradient(circle closest-side, #000 calc(var(--spread) - 25%), transparent var(--spread));
+}
+
+/* ---------- Layer 3: glass shine, never animated ---------- */
+.sheen {
+  position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 38% at 34% 20%, rgba(255,255,255,.26), transparent 70%),
+    radial-gradient(circle at center, transparent 62%, rgba(0,0,0,.35) 100%);
+}
+
+/* ---------- Outer glow, separate from the housing ---------- */
+.halo {
+  position: absolute; inset: -16px; border-radius: 50%; z-index: -1;
+  opacity: 0; pointer-events: none;
+  background: radial-gradient(circle, rgba(var(--glow),.40) 0, rgba(var(--glow),.16) 48%, transparent 70%);
+}
+
+/* ---------- Manual control buttons ---------- */
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  -webkit-app-region: no-drag;
+}
+.controls button {
+  font: 700 11px/1 system-ui, sans-serif; color: #d7d9dd; cursor: pointer;
+  min-width: 51px; padding: 9px 10px; border-radius: 8px; border: 1px solid #4d5056;
+  background: linear-gradient(180deg, #2c2e33, #1b1c1f);
+  box-shadow: inset 0 1px rgba(255,255,255,.08), 0 2px 4px rgba(0,0,0,.35);
+  transition: border-color .15s ease, background .15s ease, box-shadow .15s ease, transform .1s ease;
+}
+.controls button:hover { border-color: #8a8d94; }
+.controls button:active { transform: translateY(1px); }
+.controls button:focus-visible { outline: 2px solid #8ab4ff; outline-offset: 2px; }
+.controls .r { border-bottom: 3px solid #ff1f2e; }
+.controls .y { border-bottom: 3px solid #ffb000; }
+.controls .g { border-bottom: 3px solid #00e676; }
+.controls .off { border-bottom: 3px solid #94979d; }
+.controls button[aria-pressed="true"] {
+  color: #fff;
+  border-color: #b7bac1;
+  background: linear-gradient(180deg, #454850, #25272c);
+  box-shadow: inset 0 1px rgba(255,255,255,.16), 0 0 10px rgba(255,255,255,.14);
+}
