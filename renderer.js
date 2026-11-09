@@ -788,7 +788,11 @@ function LightWindow({ boot }) {
         onToggleDrag: handleToggleDrag,
         onToggleMute: handleToggleMute,
         onVolumeChange: handleVolumeChange,
-        onManualStop: () => ipcRenderer.invoke("light:manual-stop", light.id),
+        onManualStop: () => {
+          // Optimistically turn red immediately — don't wait for the IPC round-trip
+          setSignal(prev => ({ ...prev, mode: "red", blink: false, question: null, asking: false }));
+          ipcRenderer.invoke("light:manual-stop", light.id);
+        },
         onClick: handleTogglePanel
       })
     )
