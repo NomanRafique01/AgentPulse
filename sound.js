@@ -268,6 +268,10 @@
     thinkTimer = null;
     clearInterval(thinkRepeat);
     thinkRepeat = null;
+    // Flush any queued speech (e.g. pending "needs input" after agent resumes)
+    speechQueue.length = 0;
+    isSpeaking = false;
+    try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch {}
   }
 
   // ─── State → sound mapping ─────────────────────────────────────────────────
@@ -355,6 +359,10 @@
 
       case "red":
         soundDone();
+        // After 2s confirm task is done (only if still red — guard with lastPlayed check)
+        thinkTimer = setTimeout(() => {
+          if (lastPlayed === "red") speak("Task executed.");
+        }, 2000);
         break;
 
       case "blink-red":
