@@ -1,0 +1,161 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Glow -->
+    <radialGradient id="ambientGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00e676" stop-opacity="0.25"/>
+      <stop offset="60%" stop-color="#00e676" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Chassis Metal Gradient -->
+    <linearGradient id="chassisGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2a3033"/>
+      <stop offset="35%" stop-color="#181c1e"/>
+      <stop offset="70%" stop-color="#101314"/>
+      <stop offset="100%" stop-color="#090b0c"/>
+    </linearGradient>
+
+    <!-- Bezel Outer Ring -->
+    <linearGradient id="bezelGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3d4447"/>
+      <stop offset="50%" stop-color="#1e2224"/>
+      <stop offset="100%" stop-color="#0c0e0f"/>
+    </linearGradient>
+
+    <!-- Inner Plate -->
+    <linearGradient id="plateGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#121517"/>
+      <stop offset="100%" stop-color="#070809"/>
+    </linearGradient>
+
+    <!-- Red Lens Inactive / Glow -->
+    <radialGradient id="redLens" cx="42%" cy="38%" r="60%">
+      <stop offset="0%" stop-color="#6e1a20"/>
+      <stop offset="65%" stop-color="#3a090d"/>
+      <stop offset="100%" stop-color="#180305"/>
+    </radialGradient>
+
+    <!-- Amber / Yellow Lens Inactive / Warm -->
+    <radialGradient id="yellowLens" cx="42%" cy="38%" r="60%">
+      <stop offset="0%" stop-color="#7a5510"/>
+      <stop offset="65%" stop-color="#422c05"/>
+      <stop offset="100%" stop-color="#1c1101"/>
+    </radialGradient>
+
+    <!-- Active Green Lens High-Energy Glow -->
+    <radialGradient id="greenLensActive" cx="40%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="15%" stop-color="#99ffd0"/>
+      <stop offset="45%" stop-color="#00e676"/>
+      <stop offset="75%" stop-color="#008f43"/>
+      <stop offset="100%" stop-color="#023d1c"/>
+    </radialGradient>
+
+    <!-- Green Lens Bloom Glow -->
+    <filter id="greenGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="16" result="blur1"/>
+      <feGaussianBlur stdDeviation="32" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Lens Glass Sheen -->
+    <linearGradient id="glassSheen" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.45"/>
+      <stop offset="35%" stop-color="#ffffff" stop-opacity="0.08"/>
+      <stop offset="60%" stop-color="#000000" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.5"/>
+    </linearGradient>
+
+    <!-- Drop Shadow for Chassis -->
+    <filter id="shadowFilter" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000000" flood-opacity="0.75"/>
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <!-- Ambient Light Field behind housing -->
+  <circle cx="256" cy="355" r="160" fill="url(#ambientGlow)"/>
+
+  <!-- Main Signal Chassis Base -->
+  <g filter="url(#shadowFilter)">
+    <!-- Chassis Body -->
+    <rect x="160" y="44" width="192" height="424" rx="42" fill="url(#chassisGrad)" stroke="#384044" stroke-width="2"/>
+    
+    <!-- Chassis Inner Inset Border -->
+    <rect x="168" y="52" width="176" height="408" rx="34" fill="none" stroke="#0a0c0d" stroke-width="3"/>
+    
+    <!-- Face Plate -->
+    <rect x="174" y="58" width="164" height="396" rx="28" fill="url(#plateGrad)"/>
+    
+    <!-- Subtle Precision Screws / Rivets -->
+    <circle cx="188" cy="74" r="3.5" fill="#252a2d" stroke="#101213" stroke-width="1"/>
+    <circle cx="324" cy="74" r="3.5" fill="#252a2d" stroke="#101213" stroke-width="1"/>
+    <circle cx="188" cy="438" r="3.5" fill="#252a2d" stroke="#101213" stroke-width="1"/>
+    <circle cx="324" cy="438" r="3.5" fill="#252a2d" stroke="#101213" stroke-width="1"/>
+  </g>
+
+  <!-- ================= LENS 1: RED (Top - Standby / Alert) ================= -->
+  <g transform="translate(256, 132)">
+    <!-- Bezel Ring Outer -->
+    <circle cx="0" cy="0" r="48" fill="url(#bezelGrad)" stroke="#090b0c" stroke-width="3"/>
+    <circle cx="0" cy="0" r="43" fill="#0c0e10" stroke="#2c3236" stroke-width="1"/>
+    <!-- LED Matrix Cavity -->
+    <circle cx="0" cy="0" r="38" fill="url(#redLens)"/>
+    <!-- LED Fresnel / Honeycomb Matrix -->
+    <circle cx="0" cy="0" r="38" fill="none" stroke="#250508" stroke-width="2" stroke-dasharray="2 4"/>
+    <circle cx="0" cy="0" r="26" fill="none" stroke="#33070b" stroke-width="1.5" stroke-dasharray="3 4"/>
+    <circle cx="0" cy="0" r="14" fill="none" stroke="#44090e" stroke-width="1.5"/>
+    <circle cx="0" cy="0" r="5" fill="#ff4d5a" opacity="0.45"/>
+    <!-- Glass Sheen Reflection -->
+    <ellipse cx="-7" cy="-12" rx="24" ry="14" fill="url(#glassSheen)" transform="rotate(-25 -7 -12)"/>
+  </g>
+
+  <!-- ================= LENS 2: AMBER / YELLOW (Middle - Command / User Wait) ================= -->
+  <g transform="translate(256, 256)">
+    <!-- Bezel Ring Outer -->
+    <circle cx="0" cy="0" r="48" fill="url(#bezelGrad)" stroke="#090b0c" stroke-width="3"/>
+    <circle cx="0" cy="0" r="43" fill="#0c0e10" stroke="#2c3236" stroke-width="1"/>
+    <!-- LED Matrix Cavity -->
+    <circle cx="0" cy="0" r="38" fill="url(#yellowLens)"/>
+    <!-- LED Fresnel / Honeycomb Matrix -->
+    <circle cx="0" cy="0" r="38" fill="none" stroke="#2b1c02" stroke-width="2" stroke-dasharray="2 4"/>
+    <circle cx="0" cy="0" r="26" fill="none" stroke="#3b2703" stroke-width="1.5" stroke-dasharray="3 4"/>
+    <circle cx="0" cy="0" r="14" fill="none" stroke="#4d3305" stroke-width="1.5"/>
+    <circle cx="0" cy="0" r="5" fill="#ffb81f" opacity="0.45"/>
+    <!-- Glass Sheen Reflection -->
+    <ellipse cx="-7" cy="-12" rx="24" ry="14" fill="url(#glassSheen)" transform="rotate(-25 -7 -12)"/>
+  </g>
+
+  <!-- ================= LENS 3: GREEN (Bottom - ACTIVE / WORKING / PULSING) ================= -->
+  <g transform="translate(256, 380)">
+    <!-- Active Green Radial Bloom -->
+    <circle cx="0" cy="0" r="46" fill="#00e676" opacity="0.4" filter="url(#greenGlow)"/>
+
+    <!-- Bezel Ring Outer -->
+    <circle cx="0" cy="0" r="48" fill="url(#bezelGrad)" stroke="#090b0c" stroke-width="3"/>
+    <circle cx="0" cy="0" r="43" fill="#0c0e10" stroke="#00e676" stroke-width="1.5" stroke-opacity="0.8"/>
+    
+    <!-- LED Matrix Cavity (Vibrant Illuminated) -->
+    <circle cx="0" cy="0" r="38" fill="url(#greenLensActive)"/>
+
+    <!-- Concentric Fresnel Rings -->
+    <circle cx="0" cy="0" r="38" fill="none" stroke="#003d1c" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.6"/>
+    <circle cx="0" cy="0" r="26" fill="none" stroke="#00a854" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.7"/>
+    <circle cx="0" cy="0" r="14" fill="none" stroke="#a3ffcf" stroke-width="1.5" opacity="0.9"/>
+    <circle cx="0" cy="0" r="5" fill="#ffffff"/>
+
+    <!-- Energetic Micro-pulse Rings -->
+    <circle cx="0" cy="0" r="44" fill="none" stroke="#00e676" stroke-width="1" stroke-dasharray="6 8" opacity="0.85"/>
+
+    <!-- Glass Sheen Reflection -->
+    <ellipse cx="-7" cy="-12" rx="24" ry="14" fill="url(#glassSheen)" transform="rotate(-25 -7 -12)"/>
+  </g>
+
+  <!-- Precision Antenna / Signal Pulse Wave at top -->
+  <path d="M 236 44 L 246 22 L 266 22 L 276 44" fill="#1c2022" stroke="#33393d" stroke-width="2"/>
+  <circle cx="256" cy="18" r="4" fill="#00e676" filter="url(#greenGlow)"/>
+</svg>
