@@ -12,7 +12,7 @@ const BODY_COLOURS = new Set([
   "#1b1e20", "#e9e8e2", "#2f5573", "#5f4a72",
   "#a95a2c", "#3c5e4a", "#7e3b3c", "#6d7479"
 ]);
-const WINDOW_SIZES = { small: [190, 192], medium: [214, 198], large: [244, 207] };
+const WINDOW_SIZES = { small: [190, 50], medium: [214, 56], large: [244, 62] };
 const CONNECT_SIZES = { small: [300, 330], medium: [344, 342], large: [396, 358] };
 const THINKING_TIMEOUT = 12 * 1000; // Allow full thinking/working intervals without turning red prematurely
 const TERMINAL_TIMEOUT = 10 * 60 * 1000; // Commands can run for minutes (builds, tests); keep yellow blinking!
@@ -250,6 +250,8 @@ function readConfig() {
             .map(normaliseFolder)
             .filter((folder, index, list) => folder && list.indexOf(folder) === index)
             .slice(0, 24),
+          x: typeof item.x === "number" ? item.x : undefined,
+          y: typeof item.y === "number" ? item.y : undefined,
           closed: false,
           lastSignal: ""
         };
@@ -265,9 +267,11 @@ function readConfig() {
 function saveConfig() {
   try {
     fs.mkdirSync(path.dirname(configPath()), { recursive: true });
-    const lights = config.lights.map(({ id, name, slug, secret, size, bodyColour, folders }) => ({
+    const lights = config.lights.map(({ id, name, slug, secret, size, bodyColour, folders, x, y }) => ({
       id, name, slug, secret, size, bodyColour,
-      folders: Array.isArray(folders) ? folders : []
+      folders: Array.isArray(folders) ? folders : [],
+      ...(typeof x === "number" ? { x } : {}),
+      ...(typeof y === "number" ? { y } : {})
     }));
     fs.writeFileSync(configPath(), JSON.stringify({ version: 1, lights }, null, 2), "utf8");
     readError = "";
@@ -392,10 +396,28 @@ function createLightWindow(light, options = {}) {
     query: { mode: "light", id: light.id, ...(options.connect ? { connect: "1" } : {}) }
   });
   win.once("ready-to-show", () => {
-    const { bounds } = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
-    const [w] = win.getSize();
-    win.setPosition(Math.round(bounds.x + (bounds.width - w) / 2), bounds.y, false);
+    if (typeof light.x === "number" && typeof light.y === "number") {
+      win.setPosition(light.x, light.y, false);
+    } else {
+      const { bounds } = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+      const [w] = win.getSize();
+      const x = Math.round(bounds.x + (bounds.width - w) / 2);
+      const y = bounds.y;
+      light.x = x;
+      light.y = y;
+      win.setPosition(x, y, false);
+      saveConfig();
+    }
     win.show();
+  });
+  win.on("moved", () => {
+    const [x, y] = win.getPosition();
+    light.x = x;
+    light.y = y;
+    saveConfig();
+    if (!win.isDestroyed()) {
+      win.webContents.send("light:moved");
+    }
   });
   win.on("closed", () => {
     lightWindows.delete(light.id);
@@ -1069,7 +1091,7 @@ ipcMain.handle("light:resize", (event, height) => {
   if (!win || win.isDestroyed()) return;
   const requested = Math.round(Number(height));
   if (!Number.isFinite(requested)) return;
-  const target = Math.min(700, Math.max(220, requested));
+  const target = Math.min(700, Math.max(45, requested));
   const [width, current] = win.getContentSize();
   if (Math.abs(current - target) < 2) return;
   win.setResizable(true);
@@ -1079,7 +1101,56 @@ ipcMain.handle("light:resize", (event, height) => {
   const display = screen.getDisplayMatching(bounds);
   const maxBottom = display.workArea.y + display.workArea.height - 6;
   if (bounds.y + bounds.height > maxBottom) {
-    win.setBounds({ ...bounds, y: Math.max(display.workArea.y + 6, maxBottom - bounds.height) });
+    const nextY = Math.max(display.workArea.y + 6, maxBottom - bounds.height);
+    win.setBounds({ ...bounds, y: nextY });
+    const id = [...lightWindows.entries()].find(([_, w]) => w === win)?.[0];
+    if (id) {
+      const light = config.lights.find(l => l.id === id);
+      if (light) {
+        light.y = nextY;
+        saveConfig();
+      }
+    }
+  }
+});
+
+ipcMain.handle("light:move-by", (event, { deltaX, deltaY }) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win || win.isDestroyed()) return;
+  const [x, y] = win.getPosition();
+  const nextX = Math.round(x + deltaX);
+  const nextY = Math.round(y + deltaY);
+  win.setPosition(nextX, nextY, false);
+  const id = [...lightWindows.entries()].find(([_, w]) => w === win)?.[0];
+  if (id) {
+    const light = config.lights.find(l => l.id === id);
+    if (light) {
+      light.x = nextX;
+      light.y = nextY;
+    }
+  }
+});
+
+ipcMain.handle("light:save-position", (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win || win.isDestroyed()) return;
+  const [x, y] = win.getPosition();
+  const id = [...lightWindows.entries()].find(([_, w]) => w === win)?.[0];
+  if (id) {
+    const light = config.lights.find(l => l.id === id);
+    if (light) {
+      light.x = x;
+      light.y = y;
+      saveConfig();
+    }
+  }
+});
+
+ipcMain.on("sound:mute-sync", (event, isMuted) => {
+  for (const win of lightWindows.values()) {
+    if (win && !win.isDestroyed() && win.webContents !== event.sender) {
+      win.webContents.send("sound:mute-sync", isMuted);
+    }
   }
 });
 

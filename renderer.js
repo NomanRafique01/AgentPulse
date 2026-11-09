@@ -53,18 +53,33 @@ function baseName(folder) {
   return parts[parts.length - 1] || String(folder || "");
 }
 
-function Signal({ name, size, bodyColour, mode, blink, agents }) {
+function Signal({ name, size, bodyColour, mode, blink, agents, onClick, active, muted, volume, draggable, onToggleDrag, onToggleMute, onVolumeChange }) {
   const tone = contrastInk(bodyColour);
   const activeLabel = mode ? (LAMPS.find(lamp => lamp.id === mode) || {}).label || "" : "";
   const label = mode
     ? `${name || "AgentPulse"}, ${activeLabel}${blink ? " blinking" : " lit"}`
     : `${name || "AgentPulse"}, all bulbs off`;
+  const volumePct = Math.round((Number(volume) || 0) * 100);
 
   return h("div", {
-    className: `signal signal-${size}`,
+    className: `signal signal-${size}${active ? " is-active" : ""}${onClick ? " is-interactive" : ""}${draggable ? " is-draggable" : ""}`,
     style: { "--body": bodyColour, "--ink": tone.ink, "--edge": tone.edge },
-    role: "img",
-    "aria-label": label
+    role: onClick ? "button" : "img",
+    tabIndex: onClick ? 0 : undefined,
+    "aria-label": onClick ? `${label}. Click to toggle controls.` : label,
+    "aria-expanded": onClick ? active : undefined,
+    title: draggable
+      ? "Dragging enabled — drag light anywhere on screen"
+      : onClick
+        ? (active ? "Click lenses to close controls panel" : "Click to open controls panel")
+        : undefined,
+    onClick,
+    onKeyDown: onClick ? (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onClick();
+      }
+    } : undefined
   },
     h("div", { className: "lens-row" },
       LAMPS.map(lamp => h("div", {
@@ -87,7 +102,97 @@ function Signal({ name, size, bodyColour, mode, blink, agents }) {
           "aria-hidden": "true"
         }, agents.map((state, index) => h("i", { key: `${index}-${state}`, className: `agent-dot is-${state}` })))
         : null
-    )
+    ),
+    active ? h("div", { className: "signal-divider", "aria-hidden": "true" }) : null,
+    active ? h("div", {
+      className: "signal-sound-bay",
+      onClick: (e) => e.stopPropagation()
+    },
+      h("button", {
+        className: `signal-drag-btn${draggable ? " is-active" : ""}`,
+        type: "button",
+        onClick: onToggleDrag,
+        onPointerDown: (e) => e.stopPropagation(),
+        onMouseDown: (e) => e.stopPropagation(),
+        title: draggable ? "Click to lock position" : "Click to drag light anywhere on screen",
+        "aria-label": draggable ? "Lock light position" : "Drag light anywhere"
+      },
+        h("span", { className: "signal-drag-icon", "aria-hidden": "true" },
+          h("svg", {
+            width: "14",
+            height: "14",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2.2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+          },
+            h("path", { d: "M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v14" }),
+            h("path", { d: "M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v16" }),
+            h("path", { d: "M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8" }),
+            h("path", { d: "M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" })
+          )
+        ),
+        h("span", { className: "signal-drag-text" }, draggable ? "Lock Position" : "Drag Light")
+      ),
+      h("button", {
+        className: `signal-mute-btn${muted ? " is-muted" : ""}`,
+        type: "button",
+        onClick: onToggleMute,
+        title: muted ? "Click to unmute sound" : "Click to mute sound",
+        "aria-label": muted ? "Unmute sound" : "Mute sound"
+      },
+        h("span", { className: "signal-mute-icon", "aria-hidden": "true" },
+          muted
+            ? h("svg", {
+              width: "14",
+              height: "14",
+              viewBox: "0 0 24 24",
+              fill: "none",
+              stroke: "currentColor",
+              strokeWidth: "2.2",
+              strokeLinecap: "round",
+              strokeLinejoin: "round"
+            },
+              h("polygon", { points: "11 5 6 9 2 9 2 15 6 15 11 19 11 5" }),
+              h("line", { x1: "23", y1: "9", x2: "17", y2: "15" }),
+              h("line", { x1: "17", y1: "9", x2: "23", y2: "15" })
+            )
+            : h("svg", {
+              width: "14",
+              height: "14",
+              viewBox: "0 0 24 24",
+              fill: "none",
+              stroke: "currentColor",
+              strokeWidth: "2.2",
+              strokeLinecap: "round",
+              strokeLinejoin: "round"
+            },
+              h("polygon", { points: "11 5 6 9 2 9 2 15 6 15 11 19 11 5" }),
+              h("path", { d: "M15.54 8.46a5 5 0 0 1 0 7.07" }),
+              h("path", { d: "M19.07 4.93a10 10 0 0 1 0 14.14" })
+            )
+        ),
+        h("span", { className: "signal-mute-text" }, muted ? "Unmute Audio" : "Mute Sound")
+      ),
+      h("div", { className: "signal-vol-row" },
+        h("input", {
+          className: "signal-slider",
+          type: "range",
+          min: 0,
+          max: 1,
+          step: 0.05,
+          value: volume,
+          disabled: muted,
+          style: { "--fill": `${volumePct}%` },
+          "aria-label": "Audio volume",
+          "aria-valuetext": `${volumePct}%`,
+          onChange: onVolumeChange
+        }),
+        h("span", { className: "signal-vol-val", title: `Volume: ${volumePct}%` }, `${volumePct}%`)
+      )
+    ) : null
   );
 }
 
@@ -391,6 +496,14 @@ function LinkPanel({ light, boot, copied, onCopyLamp, onConnect, status }) {
 
 function LightWindow({ boot }) {
   const light = boot.light;
+  const [panelOpen, setPanelOpen] = React.useState(false);
+  const [draggable, setDraggable] = React.useState(false);
+  const [muted, setMuted] = React.useState(() => {
+    return window.agentSound && window.agentSound.isMuted ? window.agentSound.isMuted() : false;
+  });
+  const [volume, setVolume] = React.useState(() => {
+    return window.agentSound && window.agentSound.getVolume ? window.agentSound.getVolume() : 0.55;
+  });
   const [signal, setSignal] = React.useState(boot.state || {
     mode: (light && light.lastSignal) || "",
     blink: false,
@@ -406,6 +519,110 @@ function LightWindow({ boot }) {
   const [dismissed, setDismissed] = React.useState("");
   const rootRef = React.useRef(null);
   const copyTimer = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!window.agentSound || !window.agentSound.subscribe) return;
+    const unsubscribe = window.agentSound.subscribe(state => {
+      setMuted(state.muted);
+      setVolume(state.volume);
+    });
+    return unsubscribe;
+  }, []);
+
+  const handleToggleDrag = (e) => {
+    if (e) {
+      if (typeof e.stopPropagation === "function") e.stopPropagation();
+      if (typeof e.preventDefault === "function") e.preventDefault();
+    }
+    setDraggable(true);
+    setPanelOpen(false);
+  };
+
+  const handleTogglePanel = () => {
+    if (draggable) {
+      setDraggable(false);
+      setPanelOpen(true);
+      return;
+    }
+    setPanelOpen(prev => !prev);
+  };
+
+  const handleToggleMute = (e) => {
+    if (e) e.stopPropagation();
+    if (window.agentSound && window.agentSound.toggleMute) {
+      const next = window.agentSound.toggleMute();
+      setMuted(next);
+    }
+    setPanelOpen(false);
+  };
+
+  const handleVolumeChange = (e) => {
+    const next = parseFloat(e.target.value);
+    setVolume(next);
+    if (window.agentSound && window.agentSound.setVolume) {
+      window.agentSound.setVolume(next);
+    }
+  };
+
+  React.useEffect(() => {
+    const onMoved = () => {
+      setDraggable(false);
+    };
+    ipcRenderer.on("light:moved", onMoved);
+    return () => ipcRenderer.removeListener("light:moved", onMoved);
+  }, []);
+
+  React.useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === "Escape" && draggable) {
+        setDraggable(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [draggable]);
+
+  React.useEffect(() => {
+    if (!draggable) return;
+    let dragging = false;
+    let startScreenX = 0;
+    let startScreenY = 0;
+
+    const onMouseDown = (e) => {
+      if (e.target.closest("button") || e.target.closest("input") || e.target.closest(".signal-sound-bay")) return;
+      dragging = true;
+      startScreenX = e.screenX;
+      startScreenY = e.screenY;
+    };
+
+    const onMouseMove = (e) => {
+      if (!dragging) return;
+      const deltaX = e.screenX - startScreenX;
+      const deltaY = e.screenY - startScreenY;
+      if (deltaX !== 0 || deltaY !== 0) {
+        startScreenX = e.screenX;
+        startScreenY = e.screenY;
+        ipcRenderer.invoke("light:move-by", { deltaX, deltaY });
+      }
+    };
+
+    const onMouseUp = () => {
+      if (dragging) {
+        dragging = false;
+        ipcRenderer.invoke("light:save-position");
+        setDraggable(false);
+      }
+    };
+
+    window.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, [draggable]);
 
   React.useEffect(() => {
     const deriveSoundName = (next) => {
@@ -533,7 +750,7 @@ function LightWindow({ boot }) {
     if (!result || !result.ok) setConnectNotice("Open the light before testing it.");
   }
 
-  return h("div", { className: `light-window light-${light.size}`, ref: rootRef },
+  return h("div", { className: `light-window light-${light.size}${draggable ? " is-draggable" : ""}`, ref: rootRef },
     h("button", {
       className: "light-close",
       type: "button",
@@ -548,7 +765,15 @@ function LightWindow({ boot }) {
         bodyColour: light.bodyColour,
         mode: signal.mode,
         blink: signal.blink,
-        agents: signal.agents
+        agents: signal.agents,
+        active: panelOpen,
+        muted,
+        volume,
+        draggable,
+        onToggleDrag: handleToggleDrag,
+        onToggleMute: handleToggleMute,
+        onVolumeChange: handleVolumeChange,
+        onClick: handleTogglePanel
       })
     )
   );

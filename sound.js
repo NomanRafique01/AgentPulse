@@ -1,7 +1,7 @@
 // Sound engine — Web Audio API only, no files, works fully offline.
 // All sounds are synthesised from scratch using oscillators and gain envelopes.
 (function () {
-  let ctx = null, master = null;
+  let ctx = null, lightMaster = null;
   let volume = 0.55, muted = false;
   let lastPlayed = "";
   let inputTimer  = null;     // 4s yellow/ask alert timer
@@ -9,6 +9,24 @@
   let thinkTimer  = null;     // 12s initial "Agent is fixing" timer
   let thinkRepeat = null;     // 12s "Still fixing" interval
   let cachedVoices = [];
+  const listeners = new Set();
+
+  // Load persistent sound preferences if available
+  try {
+    const savedMuted = localStorage.getItem("agentpulse_muted");
+    if (savedMuted !== null) muted = savedMuted === "true";
+    const savedVol = localStorage.getItem("agentpulse_volume");
+    if (savedVol !== null) {
+      const parsed = parseFloat(savedVol);
+      if (!isNaN(parsed) && parsed >= 0 && parsed <= 1) volume = parsed;
+    }
+  } catch {}
+
+  function notify() {
+    listeners.forEach(fn => {
+      try { fn({ muted, volume }); } catch {}
+    });
+  }
 
   // ─── Voice caching for modern speech synthesis ────────────────────────────
   function refreshVoices() {
@@ -50,12 +68,13 @@
   }
 
   // ─── Audio context (lazy init, auto-resumed — no gesture required in Electron) ──
+  // Light sounds connect directly to lightMaster at unity gain (synced with PC system volume)
   function audio() {
     if (!ctx) {
       ctx = new (window.AudioContext || window.webkitAudioContext)();
-      master = ctx.createGain();
-      master.connect(ctx.destination);
-      _applyVolume();
+      lightMaster = ctx.createGain();
+      lightMaster.gain.value = 1.0; // 100% synced with PC master system volume
+      lightMaster.connect(ctx.destination);
     }
     // Electron is configured with autoplayPolicy "no-user-gesture-required"
     // Resume synchronously if suspended (happens on first use before any interaction)
@@ -68,9 +87,9 @@
     try {
       if (!ctx) {
         ctx = new (window.AudioContext || window.webkitAudioContext)();
-        master = ctx.createGain();
-        master.connect(ctx.destination);
-        _applyVolume();
+        lightMaster = ctx.createGain();
+        lightMaster.gain.value = 1.0;
+        lightMaster.connect(ctx.destination);
       }
       if (ctx.state === "suspended") ctx.resume();
     } catch {}
@@ -82,11 +101,8 @@
     window.addEventListener("load", primeAudio, { once: true });
   }
 
-  function _applyVolume() {
-    if (master) master.gain.value = muted ? 0 : volume;
-  }
-
   // ─── Primitive: single oscillator note with attack/decay envelope ──────────
+  // Always plays to lightMaster (synced directly with PC system volume)
   function tone(freq, startOffset, duration, peak, type, detune) {
     const c = audio();
     const t = c.currentTime + startOffset;
@@ -99,7 +115,7 @@
     g.gain.exponentialRampToValueAtTime(peak, t + 0.018);
     g.gain.exponentialRampToValueAtTime(0.0001, t + duration);
     osc.connect(g);
-    g.connect(master);
+    g.connect(lightMaster);
     osc.start(t);
     osc.stop(t + duration + 0.06);
   }
@@ -123,7 +139,7 @@
     g.gain.exponentialRampToValueAtTime(0.0001, t + duration);
     src.connect(filter);
     filter.connect(g);
-    g.connect(master);
+    g.connect(lightMaster);
     src.start(t);
     src.stop(t + duration + 0.05);
   }
@@ -173,27 +189,24 @@
     tone(1318.5, 0.15, 0.22, 0.09, "triangle"); // sparkling harmonic
   }
 
-  // Speech helper: speaks cleanly with modern natural voice
+  // Speech helper: speaks cleanly with modern natural voice (volume & mute controlled)
   function speak(text) {
-    if (muted || typeof window === "undefined" || !window.speechSynthesis) return;
+    if (muted || volume <= 0 || typeof window === "undefined" || !window.speechSynthesis) return;
     try {
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       const voice = pickBestVoice();
       if (voice) u.voice = voice;
-      u.volume = Math.min(volume * 1.35, 1.0);
+      u.volume = Math.min(1.0, Math.max(0, volume));
       u.rate   = 1.03; // modern, fluent pacing
       u.pitch  = 1.0;
       window.speechSynthesis.speak(u);
     } catch {}
   }
 
-  // Trigger the 4s voice alert: chime + voice
+  // Trigger the 4s voice alert: only agent speaks, no LED sound
   function triggerNeedInputAlert() {
-    soundNeedInputChime();
-    setTimeout(() => {
-      speak("Agent needs your input.");
-    }, 380);
+    speak("Agent needs your input.");
   }
 
   // RED (error / stopped / finished) — rich bell chord, clean finish
@@ -242,8 +255,8 @@
   //   "red"          → stopped / finished / error
   //   "off"          → all dark
   //
-  // Note: ALL yellow states (ask_question, ask_permission, run_command blocked on input,
-  //       multi-choice, sudo prompts, etc.) map to "ask" to trigger the voice alert.
+  // Light shift and blinking sounds ALWAYS play (synced directly with PC system volume).
+  // The in-app mute and volume controls only affect the agent speech synthesis voice.
 
   function play(name) {
     if (name === lastPlayed) return;   // same state: stay quiet
@@ -252,15 +265,13 @@
 
     switch (name) {
       case "think":
-        soundThinking();
-        // After 6s of continuous green thinking, announce "Agent is fixing"
+        soundThinking(); // LED sound generates on light shift to green
+        // After 6s of continuous green thinking, only agent speaks (no LED sound)
         thinkTimer = setTimeout(() => {
-          soundGreenChime();
-          setTimeout(() => speak("Agent is fixing."), 300);
-          // Then every 12s after that, say "Still fixing" until interrupted
+          speak("Agent is fixing.");
+          // Then every 12s after that, only agent speaks (no LED sound)
           thinkRepeat = setInterval(() => {
-            soundGreenChime();
-            setTimeout(() => speak("Still fixing."), 300);
+            speak("Still fixing.");
           }, 12000);
         }, 6000);
         break;
@@ -279,9 +290,9 @@
 
       case "ask":
       case "yellow":
-        // Immediate polite cue
+        // Immediate polite light cue
         soundAskArrival();
-        // If user won't give input for 4s, trigger the professional voice alert
+        // If user won't give input for 4s, trigger the professional voice alert (voice respects mute/volume)
         inputTimer = setTimeout(() => {
           triggerNeedInputAlert();
           repeatTimer = setInterval(() => {
@@ -307,19 +318,67 @@
     }
   }
 
+  // ─── Sound state controls & persistence ─────────────────────────────────────
+  // Mute & Volume only control Agent Voice; Light hardware sounds follow PC system volume.
+  function _setMutedInternal(val, broadcast = true) {
+    const next = Boolean(val);
+    if (muted === next) return muted;
+    muted = next;
+    if (muted) {
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        try { window.speechSynthesis.cancel(); } catch {}
+      }
+    } else {
+      tone(660, 0, 0.12, 0.2); // pleasant confirmation chime on unmuting voice
+    }
+    try { localStorage.setItem("agentpulse_muted", String(muted)); } catch {}
+    notify();
+    if (broadcast && typeof require !== "undefined") {
+      try {
+        const { ipcRenderer } = require("electron");
+        ipcRenderer.send("sound:mute-sync", muted);
+      } catch {}
+    }
+    return muted;
+  }
+
+  function setMuted(val) {
+    return _setMutedInternal(val, true);
+  }
+
+  function toggleMute() {
+    return setMuted(!muted);
+  }
+
+  function setVolume(val) {
+    const next = Math.min(1, Math.max(0, Number(val) || 0));
+    volume = next;
+    try { localStorage.setItem("agentpulse_volume", String(volume)); } catch {}
+    notify();
+    return volume;
+  }
+
+  // Cross-window mute synchronization via Electron IPC
+  if (typeof require !== "undefined") {
+    try {
+      const { ipcRenderer } = require("electron");
+      ipcRenderer.on("sound:mute-sync", (_event, val) => {
+        _setMutedInternal(val, false);
+      });
+    } catch {}
+  }
+
   // ─── Keyboard controls ─────────────────────────────────────────────────────
   // M = mute/unmute   ↑/↓ = volume
   document.addEventListener("keydown", e => {
     const k = e.key.toLowerCase();
     if (k === "m") {
-      muted = !muted;
-      _applyVolume();
-      if (!muted) tone(660, 0, 0.12, 0.2);
-      else stopAll();
+      toggleMute();
     } else if (k === "arrowup" || k === "arrowdown") {
-      volume = Math.min(1, Math.max(0, volume + (k === "arrowup" ? 0.1 : -0.1)));
-      _applyVolume();
-      tone(660, 0, 0.12, volume);
+      const step = k === "arrowup" ? 0.05 : -0.05;
+      const next = Math.min(1, Math.max(0, volume + step));
+      setVolume(next);
+      if (!muted) tone(660, 0, 0.1, volume);
     }
   });
 
@@ -328,8 +387,23 @@
     play,
     stop: stopAll,
     testInputAlert: () => {
+      if (muted) return;
       stopAll();
       triggerNeedInputAlert();
+    },
+    testChime: () => {
+      if (muted) return;
+      soundGreenChime();
+    },
+    isMuted: () => muted,
+    setMuted,
+    toggleMute,
+    getVolume: () => volume,
+    setVolume,
+    subscribe: (fn) => {
+      listeners.add(fn);
+      try { fn({ muted, volume }); } catch {}
+      return () => listeners.delete(fn);
     }
   };
 })();
