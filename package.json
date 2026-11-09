@@ -5,8 +5,8 @@
   "description": "Real-time desktop status light & signals for coding agents",
   "main": "main.js",
   "bin": {
-    "agentpulse": "./agentpulse.js",
-    "agentlight": "./agentlight.js"
+    "agentpulse": "agentpulse.js",
+    "agentlight": "agentlight.js"
   },
   "scripts": {
     "start": "electron .",
@@ -14,7 +14,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/NomanRafique01/AgentPulse.git"
+    "url": "git+https://github.com/NomanRafique01/AgentPulse.git"
   },
   "keywords": [
     "antigravity",

@@ -636,6 +636,10 @@ async function main() {
     return showHelp();
   }
   if (command === "help" || command === "--help" || command === "-h") return showHelp();
+  if (command === "version" || command === "--version" || command === "-v") {
+    process.stdout.write(`AgentPulse v${require("./package.json").version}\n`);
+    return;
+  }
   if (command === "init" || command === "connect") return cmdInit(args);
   if (command === "start" || command === "summon" || command === "on") return cmdStart(args);
   if (command === "signal") return cmdSignal(args);
