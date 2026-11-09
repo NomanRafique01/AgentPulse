@@ -15,7 +15,7 @@ const BODY_COLOURS = new Set([
 const WINDOW_SIZES = { small: [190, 50], medium: [214, 56], large: [244, 62] };
 const CONNECT_SIZES = { small: [300, 330], medium: [344, 342], large: [396, 358] };
 const TERMINAL_TIMEOUT = 10 * 60 * 1000; // Commands can run for minutes (builds, tests); keep yellow blinking!
-const THINKING_TIMEOUT = 60 * 1000; // 60s silence = agent truly stopped → RED
+const THINKING_TIMEOUT = 12 * 1000;      // 12s silence = agent stopped/cancelled → RED
 const TEN_MINUTES = 10 * 60 * 1000;
 const AGENT_STATES = new Set(["working", "thinking", "reading_file", "writing_file", "running_terminal", "asking", "error", "finished", "stopped"]);
 
@@ -33,35 +33,9 @@ let cliLauncherReady = false;
 
 function runtimeFor(light) {
   if (!light.runtime) {
-    light.runtime = { agents: new Map(), hasSignal: false, lastSent: "", test: null, watchedPid: 0 };
+    light.runtime = { agents: new Map(), hasSignal: false, lastSent: "", test: null };
   }
   return light.runtime;
-}
-
-function isPidAlive(pid) {
-  if (!pid || typeof pid !== "number") return false;
-  try { process.kill(pid, 0); return true; } catch { return false; }
-}
-
-// PID watchdog: when the agent process (Antigravity) dies (user manually stopped it),
-// flip the light to solid red immediately — no waiting for a Stop hook that may never fire.
-function checkPidWatchdog(light) {
-  const runtime = runtimeFor(light);
-  if (!runtime.watchedPid) return;
-  if (isPidAlive(runtime.watchedPid)) return;
-  // PID is gone — agent was killed. Clear everything and go red instantly.
-  runtime.watchedPid = 0;
-  const hasActive = [...runtime.agents.values()].some(a =>
-    a.state === "thinking" || a.state === "working" ||
-    a.state === "reading_file" || a.state === "writing_file" ||
-    a.state === "running_terminal" || a.state === "asking"
-  );
-  if (!hasActive) return; // already stopped/idle — nothing to do
-  runtime.agents.clear();
-  runtime.agents.set("watchdog", { state: "stopped", question: null, updatedAt: Date.now() });
-  light.lastSignal = "red";
-  runtime.lastSent = "";
-  pushLightState(light);
 }
 
 function normaliseFolder(value) {
@@ -564,7 +538,6 @@ function applyAgentSignal(light, body) {
 
   if (isTerminal) {
     // When stopping, manual cancellation, or termination, clear all active working states
-    runtime.watchedPid = 0; // Clear PID watch — stop was received cleanly
     runtime.agents.clear();
     runtime.agents.set(conversationId, {
       state: state === "error" ? "error" : "stopped",
@@ -586,10 +559,6 @@ function applyAgentSignal(light, body) {
 
   const file = typeof body.file === "string" ? body.file.trim().slice(0, 100) : "";
   runtime.agents.set(conversationId, { state, question, file, updatedAt: Date.now() });
-
-  // Track the agent process PID so the watchdog can detect manual cancellation instantly
-  const callerPid = typeof body.pid === "number" && body.pid > 0 ? body.pid : 0;
-  if (callerPid && callerPid !== process.pid) runtime.watchedPid = callerPid;
   if (runtime.agents.size > 24) {
     const oldest = [...runtime.agents.entries()].sort((left, right) => left[1].updatedAt - right[1].updatedAt)[0];
     if (oldest) runtime.agents.delete(oldest[0]);
@@ -1339,8 +1308,6 @@ app.whenReady().then(async () => {
     config.lights.forEach(light => {
       const runtime = runtimeFor(light);
       if (!runtime.hasSignal && !runtime.agents.size) return;
-      // PID watchdog: if the tracked agent process has died, turn red instantly
-      checkPidWatchdog(light);
       pushLightState(light);
     });
   }, 500);
