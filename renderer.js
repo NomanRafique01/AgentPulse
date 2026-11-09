@@ -53,7 +53,7 @@ function baseName(folder) {
   return parts[parts.length - 1] || String(folder || "");
 }
 
-function Signal({ name, size, bodyColour, mode, blink, agents, onClick, active, muted, volume, draggable, onToggleDrag, onToggleMute, onVolumeChange }) {
+function Signal({ name, size, bodyColour, mode, blink, agents, onClick, active, muted, volume, draggable, onToggleDrag, onToggleMute, onVolumeChange, onManualStop }) {
   const tone = contrastInk(bodyColour);
   const activeLabel = mode ? (LAMPS.find(lamp => lamp.id === mode) || {}).label || "" : "";
   const label = mode
@@ -84,7 +84,19 @@ function Signal({ name, size, bodyColour, mode, blink, agents, onClick, active, 
     h("div", { className: "lens-row" },
       LAMPS.map(lamp => h("div", {
         key: lamp.id,
-        className: `lens lens-${lamp.id}${mode === lamp.id ? " is-on" : ""}${mode === lamp.id && blink ? " is-blink" : ""}`
+        className: `lens lens-${lamp.id}${mode === lamp.id ? " is-on" : ""}${mode === lamp.id && blink ? " is-blink" : ""}`,
+        onClick: lamp.id === "red" && (mode === "green" || mode === "yellow" || (mode === "red" && blink))
+          ? (e) => {
+              e.stopPropagation();
+              if (onManualStop) onManualStop();
+            }
+          : undefined,
+        title: lamp.id === "red" && (mode === "green" || mode === "yellow" || (mode === "red" && blink))
+          ? "Stop agent execution (turn RED)"
+          : undefined,
+        style: lamp.id === "red" && (mode === "green" || mode === "yellow" || (mode === "red" && blink))
+          ? { cursor: "pointer" }
+          : undefined
       },
         h("span", { className: "lens-bloom", "aria-hidden": "true" }),
         h("span", { className: "leds" },
@@ -140,8 +152,8 @@ function Signal({ name, size, bodyColour, mode, blink, agents, onClick, active, 
         className: `signal-mute-btn${muted ? " is-muted" : ""}`,
         type: "button",
         onClick: onToggleMute,
-        title: muted ? "Click to unmute sound" : "Click to mute sound",
-        "aria-label": muted ? "Unmute sound" : "Mute sound"
+        title: muted ? "Click to unmute agent sound" : "Click to mute agent sound",
+        "aria-label": muted ? "Unmute agent sound" : "Agent sound"
       },
         h("span", { className: "signal-mute-icon", "aria-hidden": "true" },
           muted
@@ -174,7 +186,7 @@ function Signal({ name, size, bodyColour, mode, blink, agents, onClick, active, 
               h("path", { d: "M19.07 4.93a10 10 0 0 1 0 14.14" })
             )
         ),
-        h("span", { className: "signal-mute-text" }, muted ? "Unmute Audio" : "Mute Sound")
+        h("span", { className: "signal-mute-text" }, muted ? "Unmute Audio" : "Agent Sound")
       ),
       h("div", { className: "signal-vol-row" },
         h("input", {
@@ -186,11 +198,11 @@ function Signal({ name, size, bodyColour, mode, blink, agents, onClick, active, 
           value: volume,
           disabled: muted,
           style: { "--fill": `${volumePct}%` },
-          "aria-label": "Audio volume",
+          "aria-label": "Agent sound volume",
           "aria-valuetext": `${volumePct}%`,
           onChange: onVolumeChange
         }),
-        h("span", { className: "signal-vol-val", title: `Volume: ${volumePct}%` }, `${volumePct}%`)
+        h("span", { className: "signal-vol-val", title: `Agent sound: ${volumePct}%` }, `${volumePct}%`)
       )
     ) : null
   );
@@ -630,9 +642,12 @@ function LightWindow({ boot }) {
       // This covers: ask_question, ask_permission, multi-choice, terminal input, permission dialogs
       if (next.asking || next.question)   return "ask";
       if (next.mode === "yellow")         return "ask";   // includes blink-yellow (terminal blocked on input)
-      if (next.mode === "green" && next.blink) return "blink-green"; // writing file
-      if (next.mode === "green")          return "think"; // thinking/planning
-      if (next.mode === "red")            return "red";   // stopped/done
+      if (next.fileAction === "read")     return "read-file";
+      if (next.fileAction === "write")    return "write-file";
+      // green+blink with no fileAction = thinking/working
+      if (next.mode === "green" && next.blink && !next.fileAction) return "think-blink";
+      if (next.mode === "green")          return "think"; // solid green (legacy / manual)
+      if (next.mode === "red")            return "red";   // solid red = stopped/done
       return "off";
     };
 
@@ -640,7 +655,7 @@ function LightWindow({ boot }) {
       if (!next || typeof next !== "object") return;
       setSignal(next);
       setConnect(previous => previous ? { ...previous, status: next.status } : previous);
-      if (window.agentSound) window.agentSound.play(deriveSoundName(next));
+      if (window.agentSound) window.agentSound.play(deriveSoundName(next), next.file);
     };
     const onOpenConnect = () => setConnectOpen(true);
     ipcRenderer.on("light:signal", onSignal);
@@ -650,7 +665,7 @@ function LightWindow({ boot }) {
         if (!next) return;
         setSignal(next);
         // Also boot sound from initial state (e.g. window reopened while ask is active)
-        if (window.agentSound) window.agentSound.play(deriveSoundName(next));
+        if (window.agentSound) window.agentSound.play(deriveSoundName(next), next.file);
       });
     }
     return () => {
@@ -773,6 +788,7 @@ function LightWindow({ boot }) {
         onToggleDrag: handleToggleDrag,
         onToggleMute: handleToggleMute,
         onVolumeChange: handleVolumeChange,
+        onManualStop: () => ipcRenderer.invoke("light:manual-stop", light.id),
         onClick: handleTogglePanel
       })
     )

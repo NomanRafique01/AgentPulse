@@ -394,6 +394,23 @@ function isWritingOrEditing(name) {
   );
 }
 
+function isReadingOrAnalyzing(name) {
+  const n = cleanToolName(name);
+  if (!n) return false;
+  return (
+    n === "read_file" ||
+    n === "view_file" ||
+    n === "read" ||
+    n === "view" ||
+    n === "cat" ||
+    n === "head" ||
+    n === "tail" ||
+    n.includes("read_file") ||
+    n.includes("view_file") ||
+    n.includes("analyze")
+  );
+}
+
 function isRunningTerminal(name) {
   const n = cleanToolName(name);
   if (!n) return false;
@@ -411,6 +428,24 @@ function isRunningTerminal(name) {
     n.includes("bash") ||
     n.includes("shell")
   );
+}
+
+function extractFileName(payload) {
+  if (!payload || typeof payload !== "object") return "";
+  const args = (payload.toolCall && (payload.toolCall.args || payload.toolCall.arguments))
+    || payload.toolArgs
+    || payload.tool_args
+    || payload.arguments
+    || payload.parameters
+    || payload.input
+    || (payload.tool && (payload.tool.args || payload.tool.arguments))
+    || {};
+  const rawPath = args.Path || args.path || args.file || args.filePath || args.filepath || args.target || args.filename || args.file_path || "";
+  if (typeof rawPath === "string" && rawPath.trim()) {
+    const parts = rawPath.trim().split(/[\\/]/).filter(Boolean);
+    return parts[parts.length - 1] || "";
+  }
+  return "";
 }
 
 function normaliseQuestions(payload) {
@@ -517,7 +552,7 @@ async function cmdSignal(args) {
     const rawInput = await readStdin();
     const payload = parsePayload(rawInput) || {};
     const event = connection.HOOK_EVENTS.includes(eventName) ? eventName : inferEvent(payload);
-    if (event === "PreToolUse" || (payload && payload.toolCall)) {
+    if (event === "PreToolUse") {
       isPreTool = true;
       emitHookResponse();
     }
@@ -537,6 +572,8 @@ async function cmdSignal(args) {
     } else if (isPreTool) {
       if (isWritingOrEditing(name)) {
         state = "writing_file";
+      } else if (isReadingOrAnalyzing(name)) {
+        state = "reading_file";
       } else if (isRunningTerminal(name)) {
         state = "running_terminal";
       } else {
@@ -548,7 +585,9 @@ async function cmdSignal(args) {
       evLower === "cancel" ||
       evLower === "abort" ||
       evLower === "user_canceled" ||
+      evLower === "postinvocation" ||
       event === "Stop" ||
+      event === "PostInvocation" ||
       Boolean(payload && (
         payload.terminationReason ||
         payload.fullyIdle ||
@@ -563,12 +602,15 @@ async function cmdSignal(args) {
 
     if (isStopEvent) {
       state = (payload && payload.error && !String(payload.terminationReason || "").includes("USER")) ? "error" : "stopped";
-    } else if (event === "SessionStart" || event === "PreInvocation" || event === "PostInvocation" || event === "PostToolUse") {
+    } else if (event === "SessionStart" || event === "PreInvocation" || event === "PostToolUse") {
       state = "thinking";
     }
 
     const rawConvId = payload && (payload.conversationId || payload.conversation_id || payload.sessionId || payload.session_id);
     const conversationId = typeof rawConvId === "string" ? rawConvId : "";
+    const file = (isWritingOrEditing(name) || isReadingOrAnalyzing(name)) ? extractFileName(payload) : "";
+    const transcriptPath = (payload && typeof payload.transcriptPath === "string") ? payload.transcriptPath : "";
+    const callerPid = process.ppid || 0;
 
     const body = {
       route: found.connection.route,
@@ -576,8 +618,11 @@ async function cmdSignal(args) {
       event: isStopEvent ? "Stop" : (event || eventName),
       state,
       toolName: name,
+      file,
       conversationId,
       folder: found.folder,
+      transcriptPath,
+      pid: callerPid,
       workspacePaths: Array.isArray(payload.workspacePaths) ? payload.workspacePaths.slice(0, 4) : [],
       lastUserInput: typeof payload.lastUserInput === "string" ? payload.lastUserInput.slice(0, 200) : "",
       question: asking ? normaliseQuestions(payload) : null

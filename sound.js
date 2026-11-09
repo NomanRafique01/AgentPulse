@@ -4,6 +4,7 @@
   let ctx = null, lightMaster = null;
   let volume = 0.55, muted = false;
   let lastPlayed = "";
+  let lastEditedFile = "";
   let inputTimer  = null;     // 4s yellow/ask alert timer
   let repeatTimer = null;     // yellow/ask repeat interval
   let thinkTimer  = null;     // 12s initial "Agent is fixing" timer
@@ -189,19 +190,45 @@
     tone(1318.5, 0.15, 0.22, 0.09, "triangle"); // sparkling harmonic
   }
 
-  // Speech helper: speaks cleanly with modern natural voice (volume & mute controlled)
-  function speak(text) {
-    if (muted || volume <= 0 || typeof window === "undefined" || !window.speechSynthesis) return;
+  // Speech queue ensures full line is spoken completely without being cut off or overridden
+  const speechQueue = [];
+  let isSpeaking = false;
+
+  function processSpeechQueue() {
+    if (isSpeaking || speechQueue.length === 0) return;
+    if (muted || volume <= 0 || typeof window === "undefined" || !window.speechSynthesis) {
+      speechQueue.length = 0;
+      isSpeaking = false;
+      return;
+    }
+    const text = speechQueue.shift();
     try {
-      window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       const voice = pickBestVoice();
       if (voice) u.voice = voice;
       u.volume = Math.min(1.0, Math.max(0, volume));
-      u.rate   = 1.03; // modern, fluent pacing
+      u.rate   = 1.05; // modern, fluent pacing
       u.pitch  = 1.0;
+      isSpeaking = true;
+      u.onend = () => {
+        isSpeaking = false;
+        setTimeout(processSpeechQueue, 120);
+      };
+      u.onerror = () => {
+        isSpeaking = false;
+        setTimeout(processSpeechQueue, 120);
+      };
       window.speechSynthesis.speak(u);
-    } catch {}
+    } catch {
+      isSpeaking = false;
+    }
+  }
+
+  // Speech helper: speaks cleanly with modern natural voice (volume & mute controlled)
+  function speak(text) {
+    if (!text || muted || volume <= 0) return;
+    speechQueue.push(text);
+    processSpeechQueue();
   }
 
   // Trigger the 4s voice alert: only agent speaks, no LED sound
@@ -241,15 +268,14 @@
     thinkTimer = null;
     clearInterval(thinkRepeat);
     thinkRepeat = null;
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      try { window.speechSynthesis.cancel(); } catch {}
-    }
   }
 
   // ─── State → sound mapping ─────────────────────────────────────────────────
   //
   // Signals from renderer deriveSoundName():
   //   "think"        → thinking / planning (green steady)
+  //   "read-file"    → reading/analyzing file ("Agent Read <filename>")
+  //   "write-file"   → writing/editing file ("Agent Wrote <filename>")
   //   "blink-green"  → writing/editing file (green blinking)
   //   "ask"          → ANY yellow state (ask, permission, choices, terminal blocked) → 4s voice timer
   //   "red"          → stopped / finished / error
@@ -258,9 +284,12 @@
   // Light shift and blinking sounds ALWAYS play (synced directly with PC system volume).
   // The in-app mute and volume controls only affect the agent speech synthesis voice.
 
-  function play(name) {
-    if (name === lastPlayed) return;   // same state: stay quiet
+  function play(name, file) {
+    const isFileAction = (name === "read-file" || name === "write-file" || name === "blink-green") && Boolean(file);
+    if (name === lastPlayed && !isFileAction) return;   // same state: stay quiet
+    if (isFileAction && file === lastEditedFile && name === lastPlayed) return; // same file already announced
     lastPlayed = name;
+    lastEditedFile = isFileAction ? file : "";
     stopAll();
 
     switch (name) {
@@ -276,12 +305,38 @@
         }, 6000);
         break;
 
+      case "think-blink":
+        // Thinking/working = blinking RED — speak immediately, then repeat every 12s
+        soundError(); // low urgent pulse to signal active work
+        speak("Agent is working.");
+        thinkRepeat = setInterval(() => {
+          speak("Agent is working.");
+        }, 12000);
+        break;
+
       case "green":
         soundGreen();
         break;
 
+      case "read-file":
+        soundGreen();
+        if (file) {
+          const cleanName = String(file).split(/[\\/]/).pop();
+          speak(`Agent Read ${cleanName}`);
+        } else {
+          speak("Agent Read file");
+        }
+        break;
+
+      case "write-file":
       case "blink-green":
         soundWriting();
+        if (file) {
+          const cleanName = String(file).split(/[\\/]/).pop();
+          speak(`Agent Wrote ${cleanName}`);
+        } else {
+          speak("Agent Wrote file");
+        }
         break;
 
       case "blink-yellow":
@@ -290,14 +345,12 @@
 
       case "ask":
       case "yellow":
-        // Immediate polite light cue
+        // Immediate light cue + immediate voice (no delay)
         soundAskArrival();
-        // If user won't give input for 4s, trigger the professional voice alert (voice respects mute/volume)
-        inputTimer = setTimeout(() => {
+        triggerNeedInputAlert();
+        // Keep repeating every 4s until state changes
+        repeatTimer = setInterval(() => {
           triggerNeedInputAlert();
-          repeatTimer = setInterval(() => {
-            triggerNeedInputAlert();
-          }, 20000);
         }, 4000);
         break;
 

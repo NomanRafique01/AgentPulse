@@ -14,10 +14,10 @@ const BODY_COLOURS = new Set([
 ]);
 const WINDOW_SIZES = { small: [190, 50], medium: [214, 56], large: [244, 62] };
 const CONNECT_SIZES = { small: [300, 330], medium: [344, 342], large: [396, 358] };
-const THINKING_TIMEOUT = 12 * 1000; // Allow full thinking/working intervals without turning red prematurely
 const TERMINAL_TIMEOUT = 10 * 60 * 1000; // Commands can run for minutes (builds, tests); keep yellow blinking!
+const THINKING_TIMEOUT = 5 * 1000; // Sensing execution stop: 5 seconds of silence flips light to RED
 const TEN_MINUTES = 10 * 60 * 1000;
-const AGENT_STATES = new Set(["working", "thinking", "writing_file", "running_terminal", "asking", "error", "finished", "stopped"]);
+const AGENT_STATES = new Set(["working", "thinking", "reading_file", "writing_file", "running_terminal", "asking", "error", "finished", "stopped"]);
 
 let config = { lights: [] };
 let lightWindows = new Map();
@@ -78,12 +78,14 @@ function pruneAgents(light) {
         agent.updatedAt = now;
         light.lastSignal = "red";
       }
-    } else if (
-      agent.state === "working" ||
-      agent.state === "thinking" ||
-      agent.state === "writing_file"
-    ) {
-      // Active thinking / writing / analyzing stays green across its full cycle
+    } else if (agent.state === "writing_file" || agent.state === "reading_file") {
+      // After a file read or write completes, transition back to steady green thinking
+      if (now - agent.updatedAt > 3000) {
+        agent.state = "thinking";
+        agent.updatedAt = now;
+      }
+    } else if (agent.state === "thinking" || agent.state === "working") {
+      // Keep green while thinking; when agent stops manually or finishes, turn RED
       if (now - agent.updatedAt > THINKING_TIMEOUT) {
         agent.state = "stopped";
         agent.updatedAt = now;
@@ -124,9 +126,12 @@ function buildLightState(light) {
   } else if (agents.some(agent => agent.state === "writing_file")) {
     mode = "green";
     blink = true;
+  } else if (agents.some(agent => agent.state === "reading_file")) {
+    mode = "green";
+    blink = true;
   } else if (agents.some(agent => agent.state === "thinking" || agent.state === "working")) {
     mode = "green";
-    blink = false;
+    blink = true;
   } else if (agents.some(agent => agent.state === "error" || agent.state === "stopped" || agent.state === "finished")) {
     mode = "red";
     blink = false;
@@ -147,11 +152,17 @@ function buildLightState(light) {
   else if (runtime.hasSignal) status = "Connected";
   else if (Array.isArray(light.folders) && light.folders.length) status = "Waiting for agent";
 
+  const fileAgent = agents.find(agent => (agent.state === "writing_file" || agent.state === "reading_file") && agent.file);
+  const file = fileAgent ? fileAgent.file : "";
+  const fileAction = fileAgent ? (fileAgent.state === "writing_file" ? "write" : "read") : "";
+
   return {
     mode: mode || light.lastSignal || "",
     blink: Boolean(blink),
     asking: Boolean(asking),
     question,
+    file,
+    fileAction,
     agents: agentDots(light),
     status,
     connected: status === "Connected"
@@ -546,7 +557,8 @@ function applyAgentSignal(light, body) {
     }
   }
 
-  runtime.agents.set(conversationId, { state, question, updatedAt: Date.now() });
+  const file = typeof body.file === "string" ? body.file.trim().slice(0, 100) : "";
+  runtime.agents.set(conversationId, { state, question, file, updatedAt: Date.now() });
   if (runtime.agents.size > 24) {
     const oldest = [...runtime.agents.entries()].sort((left, right) => left[1].updatedAt - right[1].updatedAt)[0];
     if (oldest) runtime.agents.delete(oldest[0]);
@@ -1079,6 +1091,13 @@ ipcMain.handle("light:close", (_event, id) => {
   const win = lightWindows.get(id);
   if (light) light.closed = true;
   if (win && !win.isDestroyed()) win.destroy();
+});
+
+ipcMain.handle("light:manual-stop", (_event, id) => {
+  const light = config.lights.find(item => item.id === id) || (config.lights.length ? config.lights[0] : null);
+  if (!light) return { ok: false };
+  applyAgentSignal(light, { event: "Stop", state: "stopped" });
+  return { ok: true };
 });
 
 ipcMain.handle("light:state", (_event, id) => {
