@@ -289,6 +289,8 @@
     if (name === lastPlayed && !isFileAction) return;   // same state: stay quiet
     if (isFileAction && file === lastEditedFile && name === lastPlayed) return; // same file already announced
     lastPlayed = name;
+    // After a file action, pre-set lastPlayed to think-blink so returning to thinking stays silent
+    if (isFileAction) lastPlayed = "think-blink";
     lastEditedFile = isFileAction ? file : "";
     stopAll();
 
@@ -306,12 +308,9 @@
         break;
 
       case "think-blink":
-        // Thinking/working = blinking RED — speak immediately, then repeat every 12s
-        soundError(); // low urgent pulse to signal active work
+        // Thinking/working = blinking green — speak once only on first transition
+        soundError();
         speak("Agent is working.");
-        thinkRepeat = setInterval(() => {
-          speak("Agent is working.");
-        }, 12000);
         break;
 
       case "green":
