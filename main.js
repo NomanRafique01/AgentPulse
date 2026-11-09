@@ -466,12 +466,25 @@ function applyAgentSignal(light, body) {
   const state = AGENT_STATES.has(body.state) ? body.state : "thinking";
   const question = state === "asking" ? sanitiseQuestion(body.question) : null;
 
-  if (body.event === "Stop" || state === "stopped" || state === "finished" || state === "error") {
-    // When stopping or terminated, clear all active working states
-    // so no stale "thinking" agent holds the light green
+  const isTerminal = (
+    body.event === "Stop" ||
+    body.event === "Cancel" ||
+    body.event === "Abort" ||
+    state === "stopped" ||
+    state === "finished" ||
+    state === "error"
+  );
+
+  if (isTerminal) {
+    // When stopping, manual cancellation, or termination, clear all active working states
     runtime.agents.clear();
-    runtime.agents.set(conversationId, { state: state === "error" ? "error" : "stopped", question: null, updatedAt: Date.now() });
+    runtime.agents.set(conversationId, {
+      state: state === "error" ? "error" : "stopped",
+      question: null,
+      updatedAt: Date.now()
+    });
     light.lastSignal = "red";
+    runtime.lastSent = ""; // Guarantee push to renderer
     pushLightState(light);
     return;
   }
@@ -584,7 +597,21 @@ async function handleRequest(request, response) {
       config.lights.forEach(light => { light.closed = true; });
       return respond(response, 200, "ok");
     }
-    if (parts.length === 2 && ["signal", "connect", "disconnect", "off"].includes(parts[1])) {
+    if (parts.length === 2 && parts[1] === "stop") {
+      let body = {};
+      try { body = JSON.parse(await readBody(request)); } catch {}
+      const light = routeLight(body.route, body.secret, body.folder) || (config.lights.length ? config.lights[0] : null);
+      if (light) {
+        if (light.closed) {
+          light.closed = false;
+          createLightWindow(light);
+        }
+        applyAgentSignal(light, { ...body, event: "Stop", state: "stopped" });
+        return respond(response, 200, "ok");
+      }
+      return respond(response, 404, "not found");
+    }
+    if (parts.length === 2 && ["signal", "connect", "disconnect", "off", "stop"].includes(parts[1])) {
       return handleAgentBody(request, response, parts[1]);
     }
     return respond(response, 404, "not found");

@@ -463,8 +463,15 @@ function normaliseQuestions(payload) {
 
 function inferEvent(payload) {
   if (!payload) return "";
-  if (Object.prototype.hasOwnProperty.call(payload, "fullyIdle")
-    || Object.prototype.hasOwnProperty.call(payload, "terminationReason")) return "Stop";
+  if (
+    Object.prototype.hasOwnProperty.call(payload, "fullyIdle") ||
+    Object.prototype.hasOwnProperty.call(payload, "terminationReason") ||
+    payload.action === "stop" ||
+    payload.action === "cancel" ||
+    payload.status === "stopped" ||
+    payload.status === "cancelled" ||
+    payload.status === "canceled"
+  ) return "Stop";
   if (typeof payload.hookEventName === "string") return payload.hookEventName;
   if (typeof payload.eventName === "string") return payload.eventName;
   if (payload.toolCall) {
@@ -534,8 +541,29 @@ async function cmdSignal(args) {
       } else {
         state = "thinking";
       }
-    } else if (event === "Stop" || (payload && (payload.terminationReason || payload.fullyIdle || payload.error))) {
-      state = (payload && payload.error && event === "Stop") ? "error" : "stopped";
+    }
+
+    const evLower = String(eventName || "").toLowerCase();
+    const isStopEvent = (
+      evLower === "stop" ||
+      evLower === "cancel" ||
+      evLower === "abort" ||
+      evLower === "user_canceled" ||
+      event === "Stop" ||
+      Boolean(payload && (
+        payload.terminationReason ||
+        payload.fullyIdle ||
+        payload.error ||
+        payload.action === "stop" ||
+        payload.action === "cancel" ||
+        payload.status === "stopped" ||
+        payload.status === "cancelled" ||
+        payload.status === "canceled"
+      ))
+    );
+
+    if (isStopEvent) {
+      state = (payload && payload.error && !String(payload.terminationReason || "").includes("USER")) ? "error" : "stopped";
     } else if (event === "PreInvocation" || event === "SessionStart" || event === "PostToolUse") {
       state = "thinking";
     }
@@ -546,7 +574,7 @@ async function cmdSignal(args) {
     const body = {
       route: found.connection.route,
       secret: found.connection.secret,
-      event: event || eventName,
+      event: isStopEvent ? "Stop" : (event || eventName),
       state,
       toolName: name,
       conversationId,
@@ -559,8 +587,8 @@ async function cmdSignal(args) {
     const port = readPort();
     if (port) {
       await Promise.race([
-        request(port, "POST", "/_agentpulse/signal", body),
-        new Promise(res => setTimeout(res, 200))
+        request(port, "POST", isStopEvent ? "/_agentpulse/stop" : "/_agentpulse/signal", body),
+        new Promise(res => setTimeout(res, 1500))
       ]).catch(() => {});
     }
   } catch {
@@ -670,6 +698,27 @@ async function cmdUninstall() {
   ].join("\n"));
 }
 
+async function cmdStop(args) {
+  const flags = parseFlags(args);
+  const target = path.resolve(flags.folder || process.cwd());
+  const found = connection.findConnection(target);
+  const port = readPort();
+
+  if (port) {
+    const body = {
+      route: found && found.connection ? found.connection.route : "",
+      secret: found && found.connection ? found.connection.secret : "",
+      event: "Stop",
+      state: "stopped",
+      folder: found ? found.folder : target
+    };
+    await request(port, "POST", "/_agentpulse/stop", body).catch(() => {});
+    process.stdout.write("Agent stopped manually. Light turned RED.\n");
+  } else {
+    process.stdout.write("Notice: AgentPulse desktop light is not running. Run 'agentpulse start' to summon it.\n");
+  }
+}
+
 function showHelp() {
   process.stdout.write([
     "AgentPulse ⚡ Real-Time Coding Agent Signals",
@@ -677,6 +726,7 @@ function showHelp() {
     "Usage:",
     "  agentpulse init [folder]     Assign a signal to this project & activate hooks",
     "  agentpulse start             Summon the floating signal widget",
+    "  agentpulse stop              Manually stop execution & turn light RED",
     "  agentpulse off               Hide/close the light (hooks remain active)",
     "  agentpulse unlink            Deactivate signal & remove hooks from project",
     "  agentpulse uninstall         Unlink signals and clean workspace",
@@ -703,6 +753,7 @@ async function main() {
   }
   if (command === "init" || command === "connect") return cmdInit(args);
   if (command === "start" || command === "summon" || command === "on") return cmdStart(args);
+  if (command === "stop" || command === "halt" || command === "red" || command === "cancel") return cmdStop(args);
   if (command === "signal") return cmdSignal(args);
   if (command === "off" || command === "hide" || command === "close") return cmdOff(args);
   if (command === "unlink" || command === "deactivate" || command === "disconnect") return cmdUnlink(args);

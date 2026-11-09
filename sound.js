@@ -66,16 +66,22 @@
 
   // ─── Sound definitions ─────────────────────────────────────────────────────
 
-  // THINKING / WORKING — soft low hum, barely audible, non-intrusive
-  function soundThinking() {
-    tone(220, 0,    0.9, 0.08, "sine");
-    tone(330, 0.05, 0.7, 0.05, "sine");
+  // THINKING / SOLID GREEN — bright, crisp, uplifting ascending chime (not dim/muffled)
+  function soundGreenChime() {
+    // Bright ascending notes: E5 (659Hz) -> A5 (880Hz) -> C#6 (1108Hz) with sparkling harmonics
+    tone(659.25, 0,    0.26, 0.35, "sine");
+    tone(880.00, 0.07, 0.32, 0.32, "sine");
+    tone(1108.7, 0.14, 0.55, 0.28, "sine");
+    tone(1760.0, 0.15, 0.35, 0.12, "triangle"); // bright bell harmonic
+    noise(0.14,  0.06, 0.02, 4500);             // crisp presence
   }
 
-  // GREEN (steady) — crisp upward two-note chime, task accepted / agent active
+  function soundThinking() {
+    soundGreenChime();
+  }
+
   function soundGreen() {
-    tone(523, 0,    0.55, 0.28, "sine");   // C5
-    tone(784, 0.13, 0.75, 0.22, "sine");   // G5
+    soundGreenChime();
   }
 
   // GREEN BLINK (writing file) — soft double tap, like a keyboard click pair
