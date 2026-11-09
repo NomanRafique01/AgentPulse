@@ -408,28 +408,32 @@ function LightWindow({ boot }) {
   const copyTimer = React.useRef(null);
 
   React.useEffect(() => {
+    const deriveSoundName = (next) => {
+      // All yellow states wait for user response — always use "ask" path (4s voice timer)
+      // This covers: ask_question, ask_permission, multi-choice, terminal input, permission dialogs
+      if (next.asking || next.question)   return "ask";
+      if (next.mode === "yellow")         return "ask";   // includes blink-yellow (terminal blocked on input)
+      if (next.mode === "green" && next.blink) return "blink-green"; // writing file
+      if (next.mode === "green")          return "think"; // thinking/planning
+      if (next.mode === "red")            return "red";   // stopped/done
+      return "off";
+    };
+
     const onSignal = (_event, next) => {
       if (!next || typeof next !== "object") return;
       setSignal(next);
       setConnect(previous => previous ? { ...previous, status: next.status } : previous);
-      // Derive sound name from mode + blink + question
-      if (window.agentSound) {
-        let soundName = "off";
-        if (next.question)                           soundName = "ask";
-        else if (next.mode === "yellow" && !next.blink) soundName = "yellow";       // asking/waiting
-        else if (next.mode === "yellow" && next.blink)  soundName = "blink-yellow"; // running terminal
-        else if (next.mode === "green"  && !next.blink) soundName = "think";        // thinking/working
-        else if (next.mode === "green"  && next.blink)  soundName = "blink-green";  // writing file
-        else if (next.mode === "red")                soundName = "red";             // finished/error
-        window.agentSound.play(soundName);
-      }
+      if (window.agentSound) window.agentSound.play(deriveSoundName(next));
     };
     const onOpenConnect = () => setConnectOpen(true);
     ipcRenderer.on("light:signal", onSignal);
     ipcRenderer.on("light:open-connect", onOpenConnect);
     if (light && light.id) {
       ipcRenderer.invoke("light:state", light.id).then(next => {
-        if (next) setSignal(next);
+        if (!next) return;
+        setSignal(next);
+        // Also boot sound from initial state (e.g. window reopened while ask is active)
+        if (window.agentSound) window.agentSound.play(deriveSoundName(next));
       });
     }
     return () => {
@@ -546,11 +550,7 @@ function LightWindow({ boot }) {
         blink: signal.blink,
         agents: signal.agents
       })
-    ),
-    showQuestion ? h(AskCard, {
-      question: signal.question,
-      onDismiss: () => setDismissed(questionKey)
-    }) : null
+    )
   );
 }
 

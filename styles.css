@@ -531,8 +531,11 @@ form { margin: 0; }
 }
 
 .lens-green.is-blink .lit { animation: breathe-write 1s ease-in-out infinite; }
-.lens-yellow.is-blink .lit { animation: breathe-ask 1.2s ease-in-out infinite; }
+.lens-green.is-blink .lens-bloom { animation: bloom-write 1s ease-in-out infinite; }
+.lens-yellow.is-blink .lit { animation: breathe-ask 0.9s ease-in-out infinite; }
+.lens-yellow.is-blink .lens-bloom { animation: bloom-ask 0.9s ease-in-out infinite; }
 .lens-red.is-blink .lit { animation: breathe-alert .9s ease-in-out infinite; }
+.lens-red.is-blink .lens-bloom { animation: bloom-alert .9s ease-in-out infinite; }
 
 .plate-row {
   display: none;

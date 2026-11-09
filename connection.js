@@ -135,6 +135,7 @@ function hookConfig(commandFor) {
   return {
     SessionStart: [hookHandler(commandFor("SessionStart"))],
     PreInvocation: [hookHandler(commandFor("PreInvocation"))],
+    PostInvocation: [hookHandler(commandFor("PostInvocation"))],
     PreToolUse: [{ matcher: "", hooks: [hookHandler(commandFor("PreToolUse"))] }],
     PostToolUse: [{ matcher: "", hooks: [hookHandler(commandFor("PostToolUse"))] }],
     Stop: [hookHandler(commandFor("Stop"))]

@@ -529,7 +529,8 @@ async function cmdSignal(args) {
     }
 
     const name = toolName(payload);
-    const asking = isPreTool && isAsking(name);
+    const evLower = String(eventName || "").toLowerCase();
+    const asking = (isPreTool && isAsking(name)) || isAsking(evLower);
     let state = "thinking";
     if (asking) {
       state = "asking";
@@ -542,8 +543,6 @@ async function cmdSignal(args) {
         state = "thinking";
       }
     }
-
-    const evLower = String(eventName || "").toLowerCase();
     const isStopEvent = (
       evLower === "stop" ||
       evLower === "cancel" ||
@@ -564,7 +563,7 @@ async function cmdSignal(args) {
 
     if (isStopEvent) {
       state = (payload && payload.error && !String(payload.terminationReason || "").includes("USER")) ? "error" : "stopped";
-    } else if (event === "PreInvocation" || event === "SessionStart" || event === "PostToolUse") {
+    } else if (event === "SessionStart" || event === "PreInvocation" || event === "PostInvocation" || event === "PostToolUse") {
       state = "thinking";
     }
 
@@ -719,6 +718,36 @@ async function cmdStop(args) {
   }
 }
 
+async function cmdAsk(args) {
+  const flags = parseFlags(args);
+  const target = path.resolve(flags.folder || process.cwd());
+  const found = connection.findConnection(target);
+  const port = readPort();
+
+  if (port) {
+    const questionText = args.filter(a => !a.startsWith("-")).join(" ") || "Agent is waiting for your input.";
+    const body = {
+      route: found && found.connection ? found.connection.route : "",
+      secret: found && found.connection ? found.connection.secret : "",
+      event: "PreToolUse",
+      state: "asking",
+      toolName: "ask_question",
+      folder: found ? found.folder : target,
+      question: {
+        questions: [{
+          question: questionText,
+          detail: "",
+          options: []
+        }]
+      }
+    };
+    await request(port, "POST", "/_agentpulse/signal", body).catch(() => {});
+    process.stdout.write("Agent input requested. Light blinking YELLOW (4s voice alert armed).\n");
+  } else {
+    process.stdout.write("Notice: AgentPulse desktop light is not running. Run 'agentpulse start' to summon it.\n");
+  }
+}
+
 function showHelp() {
   process.stdout.write([
     "AgentPulse ⚡ Real-Time Coding Agent Signals",
@@ -727,6 +756,7 @@ function showHelp() {
     "  agentpulse init [folder]     Assign a signal to this project & activate hooks",
     "  agentpulse start             Summon the floating signal widget",
     "  agentpulse stop              Manually stop execution & turn light RED",
+    "  agentpulse ask [question]    Signal waiting for user input (blinking yellow + 4s voice reminder)",
     "  agentpulse off               Hide/close the light (hooks remain active)",
     "  agentpulse unlink            Deactivate signal & remove hooks from project",
     "  agentpulse uninstall         Unlink signals and clean workspace",
@@ -754,6 +784,7 @@ async function main() {
   if (command === "init" || command === "connect") return cmdInit(args);
   if (command === "start" || command === "summon" || command === "on") return cmdStart(args);
   if (command === "stop" || command === "halt" || command === "red" || command === "cancel") return cmdStop(args);
+  if (command === "ask" || command === "question" || command === "prompt") return cmdAsk(args);
   if (command === "signal") return cmdSignal(args);
   if (command === "off" || command === "hide" || command === "close") return cmdOff(args);
   if (command === "unlink" || command === "deactivate" || command === "disconnect") return cmdUnlink(args);

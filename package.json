@@ -1,7 +1,7 @@
 {
   "name": "@nomanrafique/agentpulse",
   "productName": "AgentPulse",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Real-time desktop status light & signals for coding agents",
   "main": "main.js",
   "bin": {

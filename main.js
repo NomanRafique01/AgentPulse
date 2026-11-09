@@ -14,6 +14,8 @@ const BODY_COLOURS = new Set([
 ]);
 const WINDOW_SIZES = { small: [190, 192], medium: [214, 198], large: [244, 207] };
 const CONNECT_SIZES = { small: [300, 330], medium: [344, 342], large: [396, 358] };
+const THINKING_TIMEOUT = 12 * 1000; // Allow full thinking/working intervals without turning red prematurely
+const TERMINAL_TIMEOUT = 10 * 60 * 1000; // Commands can run for minutes (builds, tests); keep yellow blinking!
 const TEN_MINUTES = 10 * 60 * 1000;
 const AGENT_STATES = new Set(["working", "thinking", "writing_file", "running_terminal", "asking", "error", "finished", "stopped"]);
 
@@ -69,7 +71,25 @@ function pruneAgents(light) {
   const runtime = runtimeFor(light);
   const now = Date.now();
   for (const [id, agent] of runtime.agents) {
-    if ((agent.state === "working" || agent.state === "thinking" || agent.state === "writing_file" || agent.state === "running_terminal") && now - agent.updatedAt > TEN_MINUTES) {
+    if (agent.state === "running_terminal") {
+      // Terminal commands can run long — keep yellow blinking until done or timeout
+      if (now - agent.updatedAt > TERMINAL_TIMEOUT) {
+        agent.state = "stopped";
+        agent.updatedAt = now;
+        light.lastSignal = "red";
+      }
+    } else if (
+      agent.state === "working" ||
+      agent.state === "thinking" ||
+      agent.state === "writing_file"
+    ) {
+      // Active thinking / writing / analyzing stays green across its full cycle
+      if (now - agent.updatedAt > THINKING_TIMEOUT) {
+        agent.state = "stopped";
+        agent.updatedAt = now;
+        light.lastSignal = "red";
+      }
+    } else if (now - agent.updatedAt > TEN_MINUTES) {
       runtime.agents.delete(id);
     }
   }
@@ -96,7 +116,7 @@ function buildLightState(light) {
   let question = null;
   if (asking) {
     mode = "yellow";
-    blink = false;
+    blink = true;
     question = asking.question || null;
   } else if (agents.some(agent => agent.state === "running_terminal")) {
     mode = "yellow";
@@ -130,6 +150,7 @@ function buildLightState(light) {
   return {
     mode: mode || light.lastSignal || "",
     blink: Boolean(blink),
+    asking: Boolean(asking),
     question,
     agents: agentDots(light),
     status,
@@ -145,6 +166,13 @@ function pushLightState(light) {
   const runtime = runtimeFor(light);
   if (signature === runtime.lastSent) return;
   runtime.lastSent = signature;
+  // If the window is still loading, defer the push until the page is ready
+  if (win.webContents.isLoading()) {
+    win.webContents.once("did-finish-load", () => {
+      if (!win.isDestroyed()) win.webContents.send("light:signal", state);
+    });
+    return;
+  }
   win.webContents.send("light:signal", state);
 }
 
@@ -312,7 +340,7 @@ function createSetupWindow() {
     fullscreenable: false,
     hasShadow: false,
     show: false,
-    webPreferences: { nodeIntegration: true, contextIsolation: false, spellcheck: false }
+    webPreferences: { nodeIntegration: true, contextIsolation: false, spellcheck: false, autoplayPolicy: "no-user-gesture-required" }
   });
   setupWindow.loadFile("index.html", { query: { mode: "setup" } });
   setupWindow.once("ready-to-show", () => {
@@ -354,7 +382,7 @@ function createLightWindow(light, options = {}) {
     hasShadow: false,
     acceptFirstMouse: true,
     show: false,
-    webPreferences: { nodeIntegration: true, contextIsolation: false, spellcheck: false }
+    webPreferences: { nodeIntegration: true, contextIsolation: false, spellcheck: false, autoplayPolicy: "no-user-gesture-required" }
   });
 
   light.closed = false;
@@ -604,9 +632,19 @@ async function handleRequest(request, response) {
       if (light) {
         if (light.closed) {
           light.closed = false;
-          createLightWindow(light);
+          const newWin = createLightWindow(light);
+          // Window was closed — wait for it to load before pushing the red state
+          const pushWhenReady = () => {
+            applyAgentSignal(light, { ...body, event: "Stop", state: "stopped" });
+          };
+          if (newWin.webContents.isLoading()) {
+            newWin.webContents.once("did-finish-load", pushWhenReady);
+          } else {
+            pushWhenReady();
+          }
+        } else {
+          applyAgentSignal(light, { ...body, event: "Stop", state: "stopped" });
         }
-        applyAgentSignal(light, { ...body, event: "Stop", state: "stopped" });
         return respond(response, 200, "ok");
       }
       return respond(response, 404, "not found");
@@ -1172,6 +1210,17 @@ app.whenReady().then(async () => {
   setInterval(() => {
     config.lights.forEach(light => pushLightState(light));
   }, 60 * 1000);
+
+  // Watchdog: check every 500ms if any green/active agent has gone silent.
+  // When an agent stops or is manually cancelled by the user, hooks stop firing.
+  // After ACTIVE_TIMEOUT without active events, this flips the light to solid RED immediately!
+  setInterval(() => {
+    config.lights.forEach(light => {
+      const runtime = runtimeFor(light);
+      if (!runtime.hasSignal && !runtime.agents.size) return;
+      pushLightState(light);
+    });
+  }, 500);
 
   setTimeout(() => installCliCommand(false), 1200);
 

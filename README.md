@@ -125,7 +125,8 @@ AgentPulse models a precision industrial stacklight featuring three high-fidelit
 
 AgentPulse features an integrated acoustic engine engineered for calm situational awareness:
 - **Zero MP3 / WAV bloat**: Sounds are synthesized mathematically in real-time using the **Web Audio API**.
-- **Harmonic Chimes**: Pleasant, non-jarring sine/triangle frequencies signal transitions (e.g. agent prompt required, build failure, task done).
+- **Harmonic Chimes**: Pleasant, non-jarring sine/triangle frequencies signal transitions (e.g. bright ascending chime on thinking, bell chord on stop).
+- **Smart 4-Second Voice Prompt**: When the agent is waiting on user input (e.g. `ask_question`), the light blinks yellow and an immediate polite two-tone chime sounds. If no user input is received within 4 seconds, a modern, natural speech voice politely alerts: *"Agent needs your input."* along with a crisp attention chime. Answering before 4 seconds prevents any interruption.
 - **Subtle Volume Calibration**: Designed to blend into background focus playlists without causing audio fatigue.
 
 ---
@@ -140,6 +141,12 @@ agentpulse init
 
 # Summon the desktop signal window manually
 agentpulse start
+
+# Manually halt execution and switch to red stop state
+agentpulse stop
+
+# Request user input (yellow light + 8-second voice alert)
+agentpulse ask [optional question]
 
 # Hide/close the light (hooks remain active for the workspace)
 agentpulse off
