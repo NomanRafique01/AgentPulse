@@ -1,8 +1,13 @@
 {
-  "name": "agent-traffic-light",
+  "name": "agent-pulse",
+  "productName": "AgentPulse",
   "version": "1.0.0",
-  "description": "Local desktop traffic lights for coding agents",
+  "description": "Real-time desktop status light & signals for coding agents",
   "main": "main.js",
+  "bin": {
+    "agentpulse": "./agentpulse.js",
+    "agentlight": "./agentlight.js"
+  },
   "scripts": {
     "start": "electron ."
   },

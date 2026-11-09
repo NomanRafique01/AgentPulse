@@ -4,11 +4,12 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
-const HOOK_KEY = "agentlight";
-const CONNECTION_FILE = ".agentlight";
+const HOOK_KEY = "agentpulse";
+const CONNECTION_FILE = ".agentpulse";
+const LEGACY_CONNECTION_FILE = ".agentlight";
 const HOOKS_REL = path.join(".agents", "hooks.json");
 const HOOK_EVENTS = ["SessionStart", "PreInvocation", "PreToolUse", "PostToolUse", "Stop"];
-const EXCLUDE_FILES = [CONNECTION_FILE, ".agents/hooks.json"];
+const EXCLUDE_FILES = [CONNECTION_FILE, LEGACY_CONNECTION_FILE, ".agents/hooks.json"];
 
 function invalidHooksError(file) {
   const error = new Error(`The hooks file is not valid JSON:\n${file}\n\nNothing was changed. Fix the file, or move it aside and start a fresh one.`);
@@ -40,7 +41,7 @@ function readJson(file) {
 }
 
 function writeJson(file, data) {
-  const temporary = `${file}.agentlight-tmp`;
+  const temporary = `${file}.agentpulse-tmp`;
   try {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(temporary, `${JSON.stringify(data, null, 2)}\n`, "utf8");
@@ -55,14 +56,23 @@ function connectionPath(folder) {
   return path.join(folder, CONNECTION_FILE);
 }
 
+function legacyConnectionPath(folder) {
+  return path.join(folder, LEGACY_CONNECTION_FILE);
+}
+
 function hooksPath(folder) {
   return path.join(folder, HOOKS_REL);
 }
 
 function readConnection(folder) {
+  let file = connectionPath(folder);
+  if (!fs.existsSync(file)) {
+    const legacy = legacyConnectionPath(folder);
+    if (fs.existsSync(legacy)) file = legacy;
+  }
   let parsed;
   try {
-    parsed = JSON.parse(fs.readFileSync(connectionPath(folder), "utf8"));
+    parsed = JSON.parse(fs.readFileSync(file, "utf8"));
   } catch (error) {
     return error.code === "ENOENT" ? null : { broken: true };
   }
@@ -117,7 +127,7 @@ function readHooks(folder) {
 }
 
 function hookHandler(command) {
-  return { type: "command", command, timeout: 5 };
+  return { type: "command", command, timeout: 15 };
 }
 
 function hookConfig(commandFor) {
@@ -296,6 +306,10 @@ function commandForEvent(launcher, eventName) {
 }
 
 function launcherPath() {
+  return path.join(os.homedir(), ".agentpulse", "bin", process.platform === "win32" ? "agentpulse.cmd" : "agentpulse");
+}
+
+function legacyLauncherPath() {
   return path.join(os.homedir(), ".agentlight", "bin", process.platform === "win32" ? "agentlight.cmd" : "agentlight");
 }
 
@@ -324,15 +338,20 @@ function launcherContent(exePath, scriptPath, asNode) {
 
 function ensureLauncher(exePath, scriptPath, asNode) {
   const target = launcherPath();
+  const legacyTarget = legacyLauncherPath();
   const content = launcherContent(exePath, scriptPath, asNode);
   try {
     fs.mkdirSync(path.dirname(target), { recursive: true });
-    let existing = "";
-    try { existing = fs.readFileSync(target, "utf8"); } catch { existing = ""; }
-    if (existing !== content) {
-      fs.writeFileSync(target, content, "utf8");
-      if (process.platform !== "win32") fs.chmodSync(target, 0o755);
-    }
+    fs.writeFileSync(target, content, "utf8");
+    if (process.platform !== "win32") fs.chmodSync(target, 0o755);
+
+    // Also write legacy launcher for backwards compatibility with any existing hooks
+    try {
+      fs.mkdirSync(path.dirname(legacyTarget), { recursive: true });
+      fs.writeFileSync(legacyTarget, content, "utf8");
+      if (process.platform !== "win32") fs.chmodSync(legacyTarget, 0o755);
+    } catch { /* Ignore legacy write errors */ }
+
     return { ok: true, path: target };
   } catch {
     return { ok: false, path: target };

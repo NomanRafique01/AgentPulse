@@ -164,6 +164,10 @@ function configPath() {
 }
 
 function portFilePath() {
+  return path.join(os.homedir(), ".agentpulse", "port.json");
+}
+
+function legacyPortFilePath() {
   return path.join(os.homedir(), ".agentlight", "port.json");
 }
 
@@ -248,21 +252,31 @@ function saveConfig() {
 function writePortFile() {
   portFileError = "";
   try {
+    const payload = JSON.stringify({ port: serverPort, pid: process.pid }, null, 2);
     fs.mkdirSync(path.dirname(portFilePath()), { recursive: true });
-    fs.writeFileSync(portFilePath(), JSON.stringify({ port: serverPort, pid: process.pid }, null, 2), "utf8");
+    fs.writeFileSync(portFilePath(), payload, "utf8");
+
+    // Also write legacy port file for backward compatibility
+    try {
+      fs.mkdirSync(path.dirname(legacyPortFilePath()), { recursive: true });
+      fs.writeFileSync(legacyPortFilePath(), payload, "utf8");
+    } catch { /* Ignore legacy write errors */ }
+
     return true;
   } catch {
-    portFileError = "The local server is running, but its port file could not be saved in ~/.agentlight.";
+    portFileError = "The local server is running, but its port file could not be saved in ~/.agentpulse.";
     return false;
   }
 }
 
 function removePortFile() {
-  try {
-    const saved = JSON.parse(fs.readFileSync(portFilePath(), "utf8"));
-    if (saved.pid === process.pid) fs.rmSync(portFilePath(), { force: true });
-  } catch {
-    /* Nothing owned by this process to remove. */
+  for (const file of [portFilePath(), legacyPortFilePath()]) {
+    try {
+      const saved = JSON.parse(fs.readFileSync(file, "utf8"));
+      if (saved.pid === process.pid) fs.rmSync(file, { force: true });
+    } catch {
+      /* Nothing owned by this process to remove. */
+    }
   }
 }
 
@@ -507,7 +521,7 @@ async function handleRequest(request, response) {
   }
   const parts = url.pathname.split("/").filter(Boolean);
 
-  if (parts[0] === "_agentlight") {
+  if (parts[0] === "_agentpulse" || parts[0] === "_agentlight") {
     if (parts.length === 2 && parts[1] === "lights" && request.method === "GET") {
       return respondJson(response, 200, {
         lights: config.lights.map(light => ({
@@ -627,7 +641,7 @@ function trayIcon() {
 }
 
 function cliScriptPath() {
-  return path.join(__dirname, "agentlight.js");
+  return path.join(__dirname, "agentpulse.js");
 }
 
 function ensureCliLauncher() {
@@ -651,12 +665,12 @@ function installCliCommand(notify) {
   const report = (added, error = "") => {
     if (!notify) return;
     const detail = added
-      ? "The command is on your PATH. Open a new terminal and run:\n\nagentlight init"
+      ? "The command is on your PATH. Open a new terminal and run:\n\nagentpulse init"
       : `The command is ready at:\n${launcher}\n\nTo run it by name from a terminal, add this folder to PATH:\n${binDir}`;
     dialog.showMessageBox({
       type: error ? "warning" : "info",
-      title: "Agent Traffic Light",
-      message: added ? "agentlight command installed" : "agentlight command ready",
+      title: "AgentPulse",
+      message: added ? "agentpulse command installed" : "agentpulse command ready",
       detail: error ? `${detail}\n\n${error}` : detail
     });
   };
@@ -680,7 +694,7 @@ function installCliCommand(notify) {
     if (!pathHasDir(dir)) continue;
     try {
       fs.mkdirSync(dir, { recursive: true });
-      const target = path.join(dir, "agentlight");
+      const target = path.join(dir, "agentpulse");
       try { fs.rmSync(target, { force: true }); } catch { /* Replace the old link. */ }
       fs.symlinkSync(launcher, target);
       return report(true);
@@ -696,7 +710,7 @@ function lightRoute(light) {
 function connectFolderToLight(light, folder, options = {}) {
   const launcher = ensureCliLauncher();
   if (!launcher.ok) {
-    throw new Error(`The agentlight command could not be created at ${launcher.path}. Check the permissions of your home folder.`);
+    throw new Error(`The agentpulse command could not be created at ${launcher.path}. Check the permissions of your home folder.`);
   }
   const commandFor = eventName => connection.commandForEvent(launcher.path, eventName);
   return connection.connectFolder(folder, {
@@ -745,7 +759,7 @@ function removeConnection(light, folder, parent) {
     cancelId: 1,
     title: "Remove connection",
     message: `Remove the connection from “${path.basename(folder) || folder}”?`,
-    detail: "The light and the folder stay. Only the agentlight hook and connection file are removed from that folder."
+    detail: "The light and the folder stay. Only the agentpulse hook and connection file are removed from that folder."
   };
   const choice = parent && !parent.isDestroyed()
     ? dialog.showMessageBoxSync(parent, options)
@@ -789,7 +803,7 @@ function deleteLight(id, parent) {
   if (win && !win.isDestroyed()) win.destroy();
   config.lights = config.lights.filter(item => item.id !== id);
   if (!saveConfig()) {
-    dialog.showErrorBox("Agent Traffic Light", "The light could not be removed from the config file. Check the app data folder permissions.");
+    dialog.showErrorBox("AgentPulse", "The light could not be removed from the config file. Check the app data folder permissions.");
   }
   refreshTrayMenu();
   if (!config.lights.length) createSetupWindow();
@@ -832,11 +846,11 @@ function refreshTrayMenu() {
   }
   template.push({ type: "separator" });
   template.push({
-    label: "Install agentlight command\u2026",
+    label: "Install agentpulse command\u2026",
     click: () => installCliCommand(true)
   });
   template.push({
-    label: "Quit Agent Traffic Light",
+    label: "Quit AgentPulse",
     click: () => {
       isQuitting = true;
       app.quit();
@@ -847,7 +861,7 @@ function refreshTrayMenu() {
 
 function createTray() {
   tray = new Tray(trayIcon());
-  tray.setToolTip("Agent Traffic Light");
+  tray.setToolTip("AgentPulse");
   refreshTrayMenu();
   tray.on("click", () => createSetupWindow());
 }
@@ -992,7 +1006,7 @@ ipcMain.handle("connect:choose", async (event, id) => {
       defaultId: 1,
       cancelId: 1,
       title: "Connection file unreadable",
-      message: "This folder has an unreadable .agentlight file.",
+      message: "This folder has an unreadable .agentpulse file.",
       detail: `Replace it with a connection to “${light.name}”?`
     });
     if (choice !== 0) return { ok: false, canceled: true };
@@ -1067,7 +1081,7 @@ app.whenReady().then(async () => {
   setTimeout(() => installCliCommand(false), 1200);
 
   const problems = [serverError, readError, portFileError].filter(Boolean);
-  if (problems.length) dialog.showErrorBox("Agent Traffic Light", problems.join("\n\n"));
+  if (problems.length) dialog.showErrorBox("AgentPulse", problems.join("\n\n"));
 });
 
 app.on("activate", () => {
