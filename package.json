@@ -9,7 +9,8 @@
     "agentlight": "./agentlight.js"
   },
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "build:dist": "node scripts/build-dist.js"
   },
   "dependencies": {
     "gsap": "^3.12.5",

@@ -863,7 +863,7 @@ function createTray() {
   tray = new Tray(trayIcon());
   tray.setToolTip("AgentPulse");
   refreshTrayMenu();
-  tray.on("click", () => createSetupWindow());
+  tray.on("click", () => openSavedLights());
 }
 
 ipcMain.handle("app:bootstrap", event => {
@@ -1066,13 +1066,31 @@ ipcMain.handle("light:delete", (event, id) => {
   deleteLight(id, BrowserWindow.fromWebContents(event.sender) || undefined);
 });
 
+function ensureDefaultLight() {
+  if (!Array.isArray(config.lights) || config.lights.length === 0) {
+    const defaultLight = {
+      id: crypto.randomUUID(),
+      name: "Pulse",
+      slug: "agent-pulse",
+      secret: crypto.randomBytes(4).toString("hex"),
+      size: "medium",
+      bodyColour: "#1b1e20",
+      folders: [],
+      closed: false,
+      lastSignal: ""
+    };
+    config.lights = [defaultLight];
+    saveConfig();
+  }
+}
+
 app.whenReady().then(async () => {
   readConfig();
+  ensureDefaultLight();
   ensureCliLauncher();
   await startServer();
   createTray();
-  if (config.lights.length) openSavedLights();
-  else createSetupWindow();
+  openSavedLights();
 
   setInterval(() => {
     config.lights.forEach(light => pushLightState(light));
@@ -1085,7 +1103,8 @@ app.whenReady().then(async () => {
 });
 
 app.on("activate", () => {
-  if (!config.lights.length) createSetupWindow();
+  ensureDefaultLight();
+  openSavedLights();
 });
 
 app.on("before-quit", () => {

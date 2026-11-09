@@ -319,16 +319,36 @@ function launcherContent(exePath, scriptPath, asNode) {
       "@echo off",
       "where node >nul 2>nul",
       "if %ERRORLEVEL% equ 0 (",
+      "  if exist \"%~dp0..\\agentpulse.js\" (",
+      "    node \"%~dp0..\\agentpulse.js\" %*",
+      "    if \"%1\"==\"signal\" exit /b 0",
+      "    exit /b %ERRORLEVEL%",
+      "  )",
       `  node "${scriptPath}" %*`,
+      "  if \"%1\"==\"signal\" exit /b 0",
       "  exit /b %ERRORLEVEL%",
       ")",
       asNode ? "set \"ELECTRON_RUN_AS_NODE=1\"" : "",
       `"${exePath}" "${scriptPath}" %*`,
+      "if \"%1\"==\"signal\" exit /b 0",
       ""
     ].filter(line => line !== "").join("\r\n");
   }
   return [
     "#!/bin/sh",
+    "if command -v node >/dev/null 2>&1; then",
+    "  SCRIPT_DIR=\"$(cd \"$(dirname \"$0\")/..\" && pwd)\"",
+    "  if [ -f \"$SCRIPT_DIR/agentpulse.js\" ]; then",
+    "    node \"$SCRIPT_DIR/agentpulse.js\" \"$@\"",
+    "    RET=$?",
+    "    if [ \"$1\" = \"signal\" ]; then exit 0; fi",
+    "    exit $RET",
+    "  fi",
+    `  node "${scriptPath}" "$@"`,
+    "  RET=$?",
+    "  if [ \"$1\" = \"signal\" ]; then exit 0; fi",
+    "  exit $RET",
+    "fi",
     asNode
       ? `ELECTRON_RUN_AS_NODE=1 exec "${exePath}" "${scriptPath}" "$@"`
       : `exec "${exePath}" "${scriptPath}" "$@"`,
