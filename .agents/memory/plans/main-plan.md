@@ -1,11 +1,11 @@
 # Master Plan: Universal Zero-Friction AgentPulse Signal Engine
 **Date:** 2026-11-09
-**Status:** IN PROGRESS (Phase 2 of 4)
+**Status:** FINISHED (4 of 4 Phases Completed)
 **Total Phases:** 4
 
 ## Goal & Architecture
 Build a streamlined, user-friendly, cross-platform distribution and runtime architecture for AgentPulse:
-1. **GitHub Release & 1-Command Silent Install**: Single-line shell command (`install.ps1` / `install.sh`) downloads from GitHub Release assets, silently extracts to `~/.agentpulse/bin`, and adds to PATH with zero desktop/menu shortcuts.
+1. **npm & GitHub Distribution**: Ultra-lightweight (34 kB) package on npm (`agentpulse`), plus standalone GitHub release scripts.
 2. **Direct Signal Display**: Suppress configuration/setup panels entirely on launch; start directly with the sleek floating physical status light.
 3. **Project Signal Lifecycle**:
    - `agentpulse init`: assigns a unique persistent signal to the current project and wires `.agents/hooks.json`.
@@ -16,9 +16,9 @@ Build a streamlined, user-friendly, cross-platform distribution and runtime arch
 
 ## Phase Breakdown
 - [x] **Phase 1: Zero-Friction Distribution, Packaging & Silent Startup** — Skills: `backend-master`, `karpathy-coder`
-- [ ] **Phase 2: Project Signal Assignment & Hook Auto-Wiring (`agentpulse init`)** — Skills: `backend-master`, `tdd-implementer`
-- [ ] **Phase 3: Signal Summoning, Clean Deactivation & Uninstaller (`start`, `off`, `uninstall`)** — Skills: `backend-master`, `karpathy-coder`
-- [ ] **Phase 4: Multi-Project Conflict Isolation & Cross-Platform Verification** — Skills: `backend-master`, `test-verifier`
+- [x] **Phase 2: Project Signal Assignment & Hook Auto-Wiring (`agentpulse init`)** — Skills: `backend-master`, `tdd-implementer`
+- [x] **Phase 3: Signal Summoning, Clean Deactivation & Uninstaller (`start`, `off`, `uninstall`)** — Skills: `backend-master`, `karpathy-coder`
+- [x] **Phase 4: Multi-Project Conflict Isolation & Cross-Platform Verification** — Skills: `backend-master`, `test-verifier`
 
 ## Global Verification Standard
 - All CLI commands (`init`, `start`, `off`, `uninstall`) return exit code 0 and never fail silently or break agent tools.
