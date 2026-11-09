@@ -194,19 +194,43 @@
   const speechQueue = [];
   let isSpeaking = false;
 
+  // Speech helper: speaks cleanly with modern natural voice (volume & mute controlled)
+  function speak(text, force = false) {
+    if (!text) return;
+    if (!force && (muted || volume <= 0)) return;
+    // In Electron, if speech synthesis is paused, resume it
+    if (typeof window !== "undefined" && window.speechSynthesis && window.speechSynthesis.paused) {
+      try { window.speechSynthesis.resume(); } catch {}
+    }
+    speechQueue.push({ text, force });
+    processSpeechQueue();
+  }
+
   function processSpeechQueue() {
     if (isSpeaking || speechQueue.length === 0) return;
-    if (muted || volume <= 0 || typeof window === "undefined" || !window.speechSynthesis) {
+    if (typeof window === "undefined" || !window.speechSynthesis) {
       speechQueue.length = 0;
       isSpeaking = false;
       return;
     }
-    const text = speechQueue.shift();
+    const item = speechQueue.shift();
+    const text = typeof item === "string" ? item : item.text;
+    const force = typeof item === "object" ? Boolean(item.force) : false;
+
+    if (!force && (muted || volume <= 0)) {
+      setTimeout(processSpeechQueue, 50);
+      return;
+    }
+
     try {
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
       const u = new SpeechSynthesisUtterance(text);
       const voice = pickBestVoice();
       if (voice) u.voice = voice;
-      u.volume = Math.min(1.0, Math.max(0, volume));
+      const vol = force ? Math.max(0.65, Number(volume) || 0.65) : Math.min(1.0, Math.max(0.1, volume));
+      u.volume = vol;
       u.rate   = 1.05; // modern, fluent pacing
       u.pitch  = 1.0;
       isSpeaking = true;
@@ -224,16 +248,9 @@
     }
   }
 
-  // Speech helper: speaks cleanly with modern natural voice (volume & mute controlled)
-  function speak(text) {
-    if (!text || muted || volume <= 0) return;
-    speechQueue.push(text);
-    processSpeechQueue();
-  }
-
-  // Trigger the 4s voice alert: only agent speaks, no LED sound
+  // Trigger the urgent voice alert: Agent needs input
   function triggerNeedInputAlert() {
-    speak("Agent needs your input.");
+    speak("Agent needs input.", true);
   }
 
   // CANCELLED — muted short descending tone
@@ -366,13 +383,15 @@
 
       case "ask":
       case "yellow":
-        // Immediate light cue + immediate voice (no delay)
+        // Immediate light chime cue
         soundAskArrival();
-        triggerNeedInputAlert();
-        // Keep repeating every 4s until state changes
-        repeatTimer = setInterval(() => {
+        // After 6 seconds, speak "Agent needs input" and repeat every 6 seconds until user responds
+        inputTimer = setTimeout(() => {
           triggerNeedInputAlert();
-        }, 5000);
+          repeatTimer = setInterval(() => {
+            triggerNeedInputAlert();
+          }, 6000);
+        }, 6000);
         break;
 
       case "cancelled":

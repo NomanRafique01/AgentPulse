@@ -366,9 +366,11 @@ function isAsking(name) {
     n === "ask_permission" ||
     n === "ask_user" ||
     n === "ask" ||
+    n === "confirm" ||
     n.startsWith("ask_") ||
     n.includes("question") ||
-    n.includes("permission")
+    n.includes("permission") ||
+    n.includes("confirm")
   );
 }
 
