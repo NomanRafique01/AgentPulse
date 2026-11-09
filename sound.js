@@ -312,9 +312,7 @@
         break;
 
       case "think-blink":
-        // Thinking/working = blinking green — speak once only on first transition
         soundError();
-        speak("Agent is working.");
         break;
 
       case "green":
