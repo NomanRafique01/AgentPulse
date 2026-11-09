@@ -412,6 +412,17 @@ function LightWindow({ boot }) {
       if (!next || typeof next !== "object") return;
       setSignal(next);
       setConnect(previous => previous ? { ...previous, status: next.status } : previous);
+      // Derive sound name from mode + blink + question
+      if (window.agentSound) {
+        let soundName = "off";
+        if (next.question)                           soundName = "ask";
+        else if (next.mode === "yellow" && !next.blink) soundName = "yellow";       // asking/waiting
+        else if (next.mode === "yellow" && next.blink)  soundName = "blink-yellow"; // running terminal
+        else if (next.mode === "green"  && !next.blink) soundName = "think";        // thinking/working
+        else if (next.mode === "green"  && next.blink)  soundName = "blink-green";  // writing file
+        else if (next.mode === "red")                soundName = "red";             // finished/error
+        window.agentSound.play(soundName);
+      }
     };
     const onOpenConnect = () => setConnectOpen(true);
     ipcRenderer.on("light:signal", onSignal);
