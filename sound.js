@@ -383,14 +383,12 @@
 
       case "ask":
       case "yellow":
-        // Immediate light chime cue
+        // Immediate light chime cue + immediate speech
         soundAskArrival();
-        // After 6 seconds, speak "Agent needs input" and repeat every 6 seconds until user responds
-        inputTimer = setTimeout(() => {
+        triggerNeedInputAlert();
+        // Repeat every 6 seconds until user responds
+        repeatTimer = setInterval(() => {
           triggerNeedInputAlert();
-          repeatTimer = setInterval(() => {
-            triggerNeedInputAlert();
-          }, 6000);
         }, 6000);
         break;
 
