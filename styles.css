@@ -518,6 +518,11 @@ form { margin: 0; }
     0 0 44px 18px rgba(24, 190, 92, .17);
 }
 
+@keyframes breathe-write {
+  0%, 100% { opacity: .26; --spread: 68%; }
+  50% { opacity: 1; --spread: 100%; }
+}
+
 @keyframes breathe-ask {
   0%, 100% { opacity: .34; --spread: 72%; }
   50% { opacity: 1; --spread: 100%; }
@@ -526,6 +531,11 @@ form { margin: 0; }
 @keyframes breathe-alert {
   0%, 100% { opacity: .26; --spread: 64%; }
   50% { opacity: 1; --spread: 100%; }
+}
+
+@keyframes bloom-write {
+  0%, 100% { opacity: .18; transform: scale(.92); }
+  50% { opacity: 1; transform: scale(1.06); }
 }
 
 @keyframes bloom-ask {
@@ -538,6 +548,8 @@ form { margin: 0; }
   50% { opacity: 1; transform: scale(1.07); }
 }
 
+.lens-green.is-blink .lit { animation: breathe-write 1s ease-in-out infinite; }
+.lens-green.is-blink .lens-bloom { animation: bloom-write 1s ease-in-out infinite; }
 .lens-yellow.is-blink .lit { animation: breathe-ask 1.2s ease-in-out infinite; }
 .lens-yellow.is-blink .lens-bloom { animation: bloom-ask 1.2s ease-in-out infinite; }
 .lens-red.is-blink .lit { animation: breathe-alert .9s ease-in-out infinite; }
@@ -584,6 +596,9 @@ form { margin: 0; }
 }
 
 .agent-dot.is-working { background: #2fd06a; }
+.agent-dot.is-thinking { background: #2fd06a; }
+.agent-dot.is-writing_file { background: #2fd06a; }
+.agent-dot.is-running_terminal { background: #ff9500; }
 .agent-dot.is-asking { background: #ffc21f; }
 .agent-dot.is-error { background: #ff3b30; }
 
