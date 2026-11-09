@@ -351,7 +351,7 @@
         // Keep repeating every 4s until state changes
         repeatTimer = setInterval(() => {
           triggerNeedInputAlert();
-        }, 4000);
+        }, 5000);
         break;
 
       case "red":
