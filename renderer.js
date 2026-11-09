@@ -539,27 +539,7 @@ function LightWindow({ boot }) {
     showQuestion ? h(AskCard, {
       question: signal.question,
       onDismiss: () => setDismissed(questionKey)
-    }) : null,
-    connectOpen
-      ? h(ConnectPanel, {
-        connect,
-        busy: connectBusy,
-        notice: connectNotice,
-        copied,
-        onChoose: chooseFolder,
-        onRemove: removeFolder,
-        onTest: testLight,
-        onClose: () => setConnectOpen(false),
-        onCopy: copyInit
-      })
-      : h(LinkPanel, {
-        light,
-        boot,
-        copied,
-        status: signal.status,
-        onCopyLamp: copyLamp,
-        onConnect: () => setConnectOpen(true)
-      })
+    }) : null
   );
 }
 
