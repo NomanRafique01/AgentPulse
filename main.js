@@ -534,6 +534,10 @@ async function handleRequest(request, response) {
         }))
       });
     }
+    if (parts.length === 2 && (parts[1] === "show" || parts[1] === "start")) {
+      openSavedLights();
+      return respond(response, 200, "ok");
+    }
     if (parts.length === 2 && ["signal", "connect", "disconnect"].includes(parts[1])) {
       return handleAgentBody(request, response, parts[1]);
     }

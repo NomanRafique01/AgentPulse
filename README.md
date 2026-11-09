@@ -6,47 +6,48 @@ AgentPulse gives your coding agent an ambient desktop presence. It silently floa
 
 ---
 
-## ⚡ 1-Command Installation
+## ⚡ Quick Install (npm)
 
-No installer wizards. No desktop icons. No Start Menu clutter. AgentPulse installs silently into your system PATH.
+You can run AgentPulse directly or install it globally via npm (only **34 kB**!):
 
-### Windows (PowerShell)
-```powershell
-irm https://raw.githubusercontent.com/NomanRafique01/AgentPulse/main/install.ps1 | iex
+```bash
+npm install -g agentpulse
 ```
 
-### macOS & Linux (Terminal)
+Or run directly without installing:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NomanRafique01/AgentPulse/main/install.sh | bash
+npx agentpulse init
 ```
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Commands
 
 ### 1. Connect Any Project
-Navigate into your repository and run:
+In any project or repository folder, run:
 ```bash
 agentpulse init
 ```
-This automatically assigns a unique signal identifier to the project and activates `.agents/hooks.json`.
+- Assigns a unique, isolated signal to this project.
+- Activates `.agents/hooks.json` automatically.
+- Summons the floating signal widget immediately.
 
-### 2. Summon the Signal
-Start the light anytime with:
+### 2. Summon Signal Anytime
 ```bash
 agentpulse start
 ```
+Summons the desktop signal widget without modifying hooks.
 
-### 3. Deactivate Hooks
-To turn off the signal and cleanly detach hooks:
+### 3. Deactivate Signal & Clean Hooks
 ```bash
 agentpulse off
 ```
+Deactivates the project signal and cleanly removes `.agents/hooks.json`.
 
 ### 4. Uninstall
-To completely remove AgentPulse and clean your PATH:
 ```bash
 agentpulse uninstall
+npm uninstall -g agentpulse
 ```
 
 ---
@@ -64,6 +65,15 @@ agentpulse uninstall
 
 ---
 
-## 📦 Releases
+## 📦 How to Publish to npm
 
-Pre-built standalone binaries are available on the [GitHub Releases](https://github.com/NomanRafique01/AgentPulse/releases) page.
+To publish this package so anyone worldwide can install it:
+
+1. In terminal, login to npm (if not already logged in):
+   ```bash
+   npm login
+   ```
+2. Publish:
+   ```bash
+   npm publish --access public
+   ```

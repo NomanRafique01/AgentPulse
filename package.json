@@ -1,5 +1,5 @@
 {
-  "name": "agent-pulse",
+  "name": "agentpulse",
   "productName": "AgentPulse",
   "version": "1.0.0",
   "description": "Real-time desktop status light & signals for coding agents",
@@ -12,12 +12,23 @@
     "start": "electron .",
     "build:dist": "node scripts/build-dist.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NomanRafique01/AgentPulse.git"
+  },
+  "keywords": [
+    "antigravity",
+    "agent",
+    "status-light",
+    "signals",
+    "coding-agent"
+  ],
+  "author": "Noman Rafique",
+  "license": "MIT",
   "dependencies": {
+    "electron": "^33.2.0",
     "gsap": "^3.12.5",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
-  },
-  "devDependencies": {
-    "electron": "^33.2.0"
   }
 }

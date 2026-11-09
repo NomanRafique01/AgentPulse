@@ -1,0 +1,9 @@
+.agents/
+.github/
+dist/
+scripts/
+.agentpulse
+.agentlight
+.placeholder
+install.ps1
+install.sh

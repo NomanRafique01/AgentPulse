@@ -187,6 +187,65 @@ function ensureCliLauncher() {
   return result.path;
 }
 
+function ensureProjectLight(folderName) {
+  const crypto = require("crypto");
+  const secret = crypto.randomBytes(4).toString("hex");
+  const baseSlug = folderName.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 24) || "pulse";
+  const light = {
+    id: crypto.randomUUID(),
+    name: folderName,
+    slug: baseSlug,
+    secret,
+    route: `${baseSlug}-${secret}`,
+    size: "medium",
+    bodyColour: "#1b1e20",
+    folders: [],
+    closed: false
+  };
+
+  const candidates = configFileCandidates();
+  if (candidates.length) {
+    const file = candidates[0];
+    try {
+      let current = { version: 1, lights: [] };
+      try {
+        current = JSON.parse(fs.readFileSync(file, "utf8")) || current;
+      } catch {}
+      if (!Array.isArray(current.lights)) current.lights = [];
+      current.lights.push(light);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, JSON.stringify(current, null, 2), "utf8");
+    } catch {}
+  }
+  return light;
+}
+
+function launchApp() {
+  const { spawn } = require("child_process");
+  const mainPath = path.join(__dirname, "main.js");
+  try {
+    const electron = require("electron");
+    const child = spawn(electron, [mainPath], {
+      detached: true,
+      stdio: "ignore"
+    });
+    child.unref();
+    return true;
+  } catch {
+    try {
+      const isWin = process.platform === "win32";
+      const child = spawn(isWin ? "npx.cmd" : "npx", ["electron", mainPath], {
+        detached: true,
+        stdio: "ignore"
+      });
+      child.unref();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
 async function pickLight(lights, explicitName) {
   if (!lights.length) return null;
   if (explicitName) {
@@ -217,23 +276,19 @@ async function pickLight(lights, explicitName) {
 async function cmdInit(args) {
   const flags = parseFlags(args);
   const target = path.resolve(flags.folder || process.cwd());
+  const folderName = path.basename(target) || "Project";
   const launcher = ensureCliLauncher();
-  const { lights, port } = await readLights();
+  let { lights, port } = await readLights();
 
-  if (!lights.length) {
-    throw new Error(
-      "No saved lights were found. Open AgentPulse, create a light, then run this command again."
-    );
+  let chosen;
+  if (!lights || !lights.length) {
+    chosen = ensureProjectLight(folderName);
+  } else {
+    const openLights = lights.filter(item => !item.closed);
+    const pool = openLights.length ? openLights : lights;
+    chosen = flags.light ? await pickLight(pool, flags.light) : pool[0];
   }
 
-  const openLights = lights.filter(item => !item.closed);
-  if (!openLights.length) {
-    throw new Error(
-      "All saved lights are closed. Open a light in AgentPulse, then run this command again."
-    );
-  }
-
-  const chosen = await pickLight(openLights, flags.light);
   const existing = connection.readHooks(target);
   if (existing.exists && Object.prototype.hasOwnProperty.call(existing.data, connection.HOOK_KEY) && !flags.replace) {
     throw new Error(
@@ -256,18 +311,22 @@ async function cmdInit(args) {
         folder: target
       }).catch(() => {});
     }
+    await request(port, "POST", "/_agentpulse/start", {}).catch(() => {});
+  } else {
+    launchApp();
   }
 
   process.stdout.write([
-    `Connected "${chosen.name}" to:`,
-    `  ${target}`,
+    `Signal initialized for "${chosen.name}":`,
+    `  Folder: ${target}`,
+    `  Hooks:  ${result.hooks.file}${result.hooks.backup ? ` (backup at ${result.hooks.backup})` : ""}`,
+    result.exclude.ok ? `  Git exclude: ${result.exclude.file}` : "",
     "",
-    "Files updated:",
-    `  ${connection.connectionPath(target)}`,
-    `  ${result.hooks.file}${result.hooks.backup ? ` (backup at ${result.hooks.backup})` : ""}`,
-    result.exclude.ok ? `  ${result.exclude.file} (excluded from git)` : "",
+    "Signal is live! Your coding agent will now pulse this light on actions.",
     "",
-    "Your coding agent will now signal this light whenever it runs here.",
+    "Commands:",
+    "  agentpulse start  - summon the signal light",
+    "  agentpulse off    - cleanly deactivate signal & remove hook",
     ""
   ].filter(line => line !== "").join("\n"));
 }
@@ -492,12 +551,50 @@ async function cmdSignal(args) {
   }
 }
 
+async function cmdStart(args) {
+  const port = readPort();
+  if (port) {
+    const res = await request(port, "POST", "/_agentpulse/start", {}).catch(() => null);
+    if (res && (res.status === 200 || res.status === 204)) {
+      process.stdout.write("AgentPulse signal active (summoned).\n");
+      return;
+    }
+  }
+  process.stdout.write("Summoning AgentPulse desktop signal...\n");
+  const launched = launchApp();
+  if (launched) {
+    process.stdout.write("AgentPulse signal summoned.\n");
+  } else {
+    process.stdout.write("Could not automatically launch GUI. Run 'agentpulse' or check Electron.\n");
+  }
+}
+
+async function cmdUninstall() {
+  process.stdout.write("Unlinking AgentPulse signals from this project...\n");
+  const target = process.cwd();
+  try {
+    const found = connection.findConnection(target);
+    if (found) {
+      connection.disconnectFolder(found.folder);
+      process.stdout.write(`Unlinked hooks from: ${found.folder}\n`);
+    }
+  } catch {}
+
+  process.stdout.write([
+    "",
+    "Hooks unlinked. To uninstall the global npm package completely, run:",
+    "  npm uninstall -g agentpulse",
+    ""
+  ].join("\n"));
+}
+
 async function cmdOff(args) {
   const flags = parseFlags(args);
   const start = path.resolve(flags.folder || process.cwd());
   const found = connection.findConnection(start);
   if (!found) {
-    throw new Error(`This folder is not connected:\n${start}`);
+    process.stdout.write(`Notice: No active connection found in ${start}\n`);
+    return;
   }
   connection.disconnectFolder(found.folder);
   const port = readPort();
@@ -510,35 +607,41 @@ async function cmdOff(args) {
       }).catch(() => {});
     }
   }
-  process.stdout.write(`Disconnected:\n  ${found.folder}\n\nThe light itself was not deleted.\n`);
+  process.stdout.write(`Signal deactivated and hooks removed from:\n  ${found.folder}\n`);
 }
 
 function showHelp() {
-  const launcher = connection.launcherPath();
   process.stdout.write([
-    "AgentPulse",
+    "AgentPulse ⚡ Real-Time Coding Agent Signals",
     "",
     "Usage:",
-    `  "${launcher}" init [folder] [--light "Name"] [--backup] [--replace]`,
-    `  "${launcher}" signal <Event> < hook-payload.json`,
-    `  "${launcher}" off [folder]`,
+    "  agentpulse init [folder]     Assign a signal to this project & activate hooks",
+    "  agentpulse start             Summon the floating signal widget",
+    "  agentpulse off               Deactivate signal & remove hooks cleanly",
+    "  agentpulse uninstall         Unlink signals and clean workspace",
+    "  agentpulse signal <Event>    Relay agent hook event",
     "",
-    "init    Connect a project folder to a saved light.",
-    "signal  Send one Antigravity hook event to the app.",
-    "off     Remove the connection and its hook entry.",
-    "",
-    "Events: SessionStart, PreInvocation, PreToolUse, PostToolUse, Stop",
+    "Options:",
+    "  --replace                    Overwrite existing hook without warning",
+    "  --backup                     Create a backup of hooks.json before modifying",
     ""
   ].join("\n"));
 }
 
 async function main() {
   const [command, ...args] = process.argv.slice(2);
-  if (!command || command === "help" || command === "--help" || command === "-h") return showHelp();
+  if (!command) {
+    const found = connection.findConnection(process.cwd());
+    if (found) return cmdStart(args);
+    return showHelp();
+  }
+  if (command === "help" || command === "--help" || command === "-h") return showHelp();
   if (command === "init" || command === "connect") return cmdInit(args);
+  if (command === "start" || command === "summon" || command === "on") return cmdStart(args);
   if (command === "signal") return cmdSignal(args);
-  if (command === "off" || command === "disconnect") return cmdOff(args);
-  throw new Error(`Unknown command "${command}". Run "${connection.launcherPath()}" help.`);
+  if (command === "off" || command === "deactivate" || command === "disconnect") return cmdOff(args);
+  if (command === "uninstall") return cmdUninstall(args);
+  throw new Error(`Unknown command "${command}". Run "agentpulse help".`);
 }
 
 process.on("uncaughtException", () => {
