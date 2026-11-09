@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">
-  <img src="assets/title.svg" alt="AgentPulse" width="340"/>
+  <img src="assets/title.svg" alt="AgentPulse" width="280"/>
 </h1>
 
 <p align="center">

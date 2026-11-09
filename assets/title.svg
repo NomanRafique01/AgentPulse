@@ -1,85 +1,47 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 90" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 70" width="100%" height="100%">
   <defs>
-    <!-- Text Gradient: White into Silver Platinum -->
-    <linearGradient id="textGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="70%" stop-color="#e6ece8"/>
-      <stop offset="100%" stop-color="#bac2bd"/>
-    </linearGradient>
+    <style>
+      .title-agent {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, Helvetica, Arial, sans-serif;
+        font-weight: 800;
+        font-size: 50px;
+        letter-spacing: -0.035em;
+        fill: #0f172a;
+      }
+      .title-pulse {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, Helvetica, Arial, sans-serif;
+        font-weight: 900;
+        font-size: 50px;
+        letter-spacing: -0.025em;
+        fill: url(#pulseGradLight);
+      }
+      @media (prefers-color-scheme: dark) {
+        .title-agent {
+          fill: #ffffff;
+        }
+        .title-pulse {
+          fill: url(#pulseGradDark);
+          filter: drop-shadow(0 0 14px rgba(0, 230, 118, 0.45));
+        }
+      }
+    </style>
 
-    <!-- Pulse Emerald Glow Gradient -->
-    <linearGradient id="pulseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+    <!-- Dark Mode Pulse Gradient -->
+    <linearGradient id="pulseGradDark" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#00e676"/>
-      <stop offset="50%" stop-color="#00f5a0"/>
-      <stop offset="100%" stop-color="#00b0ff"/>
+      <stop offset="60%" stop-color="#00f5a0"/>
+      <stop offset="100%" stop-color="#00c853"/>
     </linearGradient>
 
-    <!-- Emerald Glow Filter -->
-    <filter id="emeraldGlow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="3.5" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-
-    <!-- Lightning Pulse Sparkle -->
-    <linearGradient id="sparkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="100%" stop-color="#00e676"/>
+    <!-- Light Mode Pulse Gradient -->
+    <linearGradient id="pulseGradLight" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00a846"/>
+      <stop offset="100%" stop-color="#008a38"/>
     </linearGradient>
   </defs>
 
-  <!-- Pulse Wave Graphic on Left -->
-  <g transform="translate(14, 18)">
-    <!-- Signal Activity Track -->
-    <rect x="0" y="24" width="48" height="6" rx="3" fill="#1b2123"/>
-    
-    <!-- Heartbeat / Agent ECG Pulse -->
-    <path d="M 2 27 L 14 27 L 19 10 L 26 44 L 32 16 L 37 32 L 41 27 L 46 27" 
-          fill="none" 
-          stroke="url(#pulseGrad)" 
-          stroke-width="3" 
-          stroke-linecap="round" 
-          stroke-linejoin="round"
-          filter="url(#emeraldGlow)"/>
-
-    <!-- Pulse Node Indicator -->
-    <circle cx="26" cy="44" r="3" fill="#ffffff" filter="url(#emeraldGlow)"/>
-  </g>
-
-  <!-- Brand Typography: AGENT -->
-  <text x="74" y="62" 
-        font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Inter', sans-serif" 
-        font-size="52" 
-        font-weight="800" 
-        letter-spacing="-0.03em" 
-        fill="url(#textGrad)">
-    Agent
+  <!-- Perfectly Centered Proper Name: AgentPulse -->
+  <text x="50%" y="53" text-anchor="middle">
+    <tspan class="title-agent">Agent</tspan><tspan class="title-pulse">Pulse</tspan>
   </text>
-
-  <!-- Brand Typography: PULSE -->
-  <text x="234" y="62" 
-        font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Inter', sans-serif" 
-        font-size="52" 
-        font-weight="900" 
-        letter-spacing="-0.02em" 
-        fill="url(#pulseGrad)"
-        filter="url(#emeraldGlow)">
-    Pulse
-  </text>
-
-  <!-- Status Light Dot Pill -->
-  <g transform="translate(422, 28)">
-    <rect x="0" y="0" width="76" height="24" rx="12" fill="#101516" stroke="#1f282b" stroke-width="1.5"/>
-    <circle cx="14" cy="12" r="5" fill="#00e676" filter="url(#emeraldGlow)"/>
-    <text x="26" y="16.5" 
-          font-family="system-ui, -apple-system, sans-serif" 
-          font-size="11" 
-          font-weight="700" 
-          letter-spacing="0.08em" 
-          fill="#00e676">
-      LIVE
-    </text>
-  </g>
 </svg>
