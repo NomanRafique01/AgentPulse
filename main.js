@@ -15,7 +15,7 @@ const BODY_COLOURS = new Set([
 const WINDOW_SIZES = { small: [300, 305], medium: [344, 317], large: [396, 333] };
 const CONNECT_SIZES = { small: [300, 330], medium: [344, 342], large: [396, 358] };
 const TEN_MINUTES = 10 * 60 * 1000;
-const AGENT_STATES = new Set(["working", "asking", "error", "finished"]);
+const AGENT_STATES = new Set(["working", "thinking", "writing_file", "running_terminal", "asking", "error", "finished", "stopped"]);
 
 let config = { lights: [] };
 let lightWindows = new Map();
@@ -69,13 +69,15 @@ function pruneAgents(light) {
   const runtime = runtimeFor(light);
   const now = Date.now();
   for (const [id, agent] of runtime.agents) {
-    if (agent.state === "working" && now - agent.updatedAt > TEN_MINUTES) runtime.agents.delete(id);
+    if ((agent.state === "working" || agent.state === "thinking" || agent.state === "writing_file" || agent.state === "running_terminal") && now - agent.updatedAt > TEN_MINUTES) {
+      runtime.agents.delete(id);
+    }
   }
 }
 
 function agentDots(light) {
   return [...runtimeFor(light).agents.values()]
-    .filter(agent => agent.state === "working" || agent.state === "asking" || agent.state === "error")
+    .filter(agent => agent.state !== "stopped" && agent.state !== "finished")
     .sort((left, right) => left.updatedAt - right.updatedAt)
     .slice(-8)
     .map(agent => agent.state);
@@ -92,17 +94,25 @@ function buildLightState(light) {
   let mode = "";
   let blink = false;
   let question = null;
-  if (agents.some(agent => agent.state === "working")) {
-    mode = "green";
-  } else if (asking) {
+  if (asking) {
+    mode = "yellow";
+    blink = false;
+    question = asking.question || null;
+  } else if (agents.some(agent => agent.state === "running_terminal")) {
     mode = "yellow";
     blink = true;
-    question = asking.question || null;
-  } else if (agents.some(agent => agent.state === "error")) {
-    mode = "red";
+  } else if (agents.some(agent => agent.state === "writing_file")) {
+    mode = "green";
     blink = true;
+  } else if (agents.some(agent => agent.state === "thinking" || agent.state === "working")) {
+    mode = "green";
+    blink = false;
+  } else if (agents.some(agent => agent.state === "error" || agent.state === "stopped" || agent.state === "finished")) {
+    mode = "red";
+    blink = false;
   } else if (agents.length) {
     mode = "red";
+    blink = false;
   }
 
   const test = runtime.test && runtime.test.until > Date.now() ? runtime.test : null;
@@ -418,8 +428,16 @@ function applyAgentSignal(light, body) {
   const conversationId = typeof body.conversationId === "string" && body.conversationId
     ? body.conversationId.slice(0, 120)
     : (folder ? `folder:${folder}` : "agent");
-  const state = AGENT_STATES.has(body.state) ? body.state : "working";
+  const state = AGENT_STATES.has(body.state) ? body.state : "thinking";
   const question = state === "asking" ? sanitiseQuestion(body.question) : null;
+
+  if (body.event === "Stop" || state === "stopped" || state === "finished" || state === "error") {
+    for (const [id] of runtime.agents) {
+      if (id === conversationId || !body.conversationId) {
+        runtime.agents.delete(id);
+      }
+    }
+  }
 
   runtime.agents.set(conversationId, { state, question, updatedAt: Date.now() });
   if (runtime.agents.size > 24) {

@@ -154,7 +154,6 @@ function ask(question) {
 
 function ensureCliLauncher() {
   const target = connection.launcherPath();
-  if (fs.existsSync(target)) return target;
   const result = connection.ensureLauncher(
     process.execPath,
     __filename,
@@ -274,15 +273,84 @@ async function cmdInit(args) {
   }
 }
 
+function toolName(payload) {
+  if (!payload) return "";
+  if (payload.toolCall && typeof payload.toolCall.name === "string") return payload.toolCall.name;
+  if (typeof payload.toolName === "string") return payload.toolName;
+  if (typeof payload.tool_name === "string") return payload.tool_name;
+  if (payload.tool && typeof payload.tool.name === "string") return payload.tool.name;
+  if (typeof payload.tool === "string") return payload.tool;
+  if (typeof payload.name === "string") return payload.name;
+  return "";
+}
+
+function cleanToolName(name) {
+  const s = String(name || "").toLowerCase().trim();
+  return s.includes(":") ? s.split(":").pop() : s;
+}
+
+function isAsking(name) {
+  const n = cleanToolName(name);
+  if (!n) return false;
+  return (
+    n === "ask_question" ||
+    n === "ask_permission" ||
+    n === "ask_user" ||
+    n === "ask" ||
+    n.startsWith("ask_") ||
+    n.includes("question") ||
+    n.includes("permission")
+  );
+}
+
+function isWritingOrEditing(name) {
+  const n = cleanToolName(name);
+  if (!n) return false;
+  return (
+    n === "write_file" ||
+    n === "edit_file" ||
+    n === "create_file" ||
+    n === "append_file" ||
+    n === "patch_file" ||
+    n === "modify_file" ||
+    n === "save_file" ||
+    n === "str_replace_editor" ||
+    n === "file_editor" ||
+    n === "write" ||
+    n === "edit" ||
+    n.includes("write_file") ||
+    n.includes("edit_file") ||
+    n.includes("patch_file") ||
+    n.includes("create_file")
+  );
+}
+
+function isRunningTerminal(name) {
+  const n = cleanToolName(name);
+  if (!n) return false;
+  return (
+    n === "run_command" ||
+    n === "bash" ||
+    n === "terminal" ||
+    n === "execute_command" ||
+    n === "exec_command" ||
+    n === "run_terminal_cmd" ||
+    n === "shell" ||
+    n === "exec" ||
+    n.includes("command") ||
+    n.includes("terminal") ||
+    n.includes("bash") ||
+    n.includes("shell")
+  );
+}
+
 function normaliseQuestions(payload) {
-  const name = payload && payload.toolCall && payload.toolCall.name
-    ? String(payload.toolCall.name)
-    : String(payload && payload.toolName || "");
+  const name = cleanToolName(toolName(payload));
   const args = (payload && payload.toolCall && payload.toolCall.args)
     || (payload && payload.toolArgs)
     || {};
 
-  if (name === "ask_permission") {
+  if (name === "ask_permission" || name.includes("permission")) {
     const action = args.Action ? String(args.Action) : "access";
     const target = args.Target ? String(args.Target) : "";
     const reason = args.Reason ? String(args.Reason) : "";
@@ -324,13 +392,6 @@ function normaliseQuestions(payload) {
   };
 }
 
-function toolName(payload) {
-  if (!payload) return "";
-  if (payload.toolCall && typeof payload.toolCall.name === "string") return payload.toolCall.name;
-  if (typeof payload.toolName === "string") return payload.toolName;
-  return "";
-}
-
 function inferEvent(payload) {
   if (!payload) return "";
   if (Object.prototype.hasOwnProperty.call(payload, "fullyIdle")
@@ -360,10 +421,11 @@ async function cmdSignal(args) {
   let allowed = false;
   try {
     const port = readPort();
-    const payload = parsePayload(await readStdin());
+    const rawInput = await readStdin();
+    const payload = parsePayload(rawInput) || {};
     const event = connection.HOOK_EVENTS.includes(args[0]) ? args[0] : inferEvent(payload);
 
-    if (!payload || !event) {
+    if (!event) {
       process.stdout.write("{}\n");
       return;
     }
@@ -375,21 +437,30 @@ async function cmdSignal(args) {
     }
 
     const name = toolName(payload);
-    const asking = event === "PreToolUse" && (name === "ask_question" || name === "ask_permission");
-    let state = "working";
-    if (asking) state = "asking";
-    if (event === "Stop") {
-      if (payload.terminationReason === "error" || payload.error) state = "error";
-      else if (payload.fullyIdle) state = "finished";
-      else state = "working";
+    const asking = event === "PreToolUse" && isAsking(name);
+    let state = "thinking";
+    if (asking) {
+      state = "asking";
+    } else if (event === "PreToolUse") {
+      if (isWritingOrEditing(name)) {
+        state = "writing_file";
+      } else if (isRunningTerminal(name)) {
+        state = "running_terminal";
+      } else {
+        state = "thinking";
+      }
+    } else if (event === "Stop") {
+      state = "stopped";
+    } else if (event === "PreInvocation" || event === "SessionStart" || event === "PostToolUse") {
+      state = "thinking";
     }
-    if (event === "PostToolUse" || event === "PreInvocation" || event === "SessionStart") state = "working";
 
     const body = {
       route: found.connection.route,
       secret: found.connection.secret,
       event,
       state,
+      toolName: name,
       conversationId: typeof payload.conversationId === "string" ? payload.conversationId : "",
       folder: found.folder,
       workspacePaths: Array.isArray(payload.workspacePaths) ? payload.workspacePaths.slice(0, 4) : [],
@@ -403,7 +474,7 @@ async function cmdSignal(args) {
   } catch {
     allowed = false;
   }
-  process.stdout.write(allowed ? "{\"decision\":\"allow\"}\n" : "{}\n");
+  process.stdout.write('{"decision":"allow"}\n');
 }
 
 async function cmdOff(args) {

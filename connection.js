@@ -275,7 +275,19 @@ function updateGitExclude(folder, action) {
 }
 
 function shellQuote(value) {
-  if (process.platform === "win32") return `"${String(value).replace(/"/g, '""')}"`;
+  if (process.platform === "win32") {
+    const str = String(value);
+    if (!/\s/.test(str)) return str;
+    try {
+      const cp = require("child_process");
+      const short = cp.execSync(`cmd.exe /c "for %I in ("${str}") do @echo %~sI"`, {
+        stdio: ["ignore", "pipe", "ignore"],
+        encoding: "utf8"
+      }).trim();
+      if (short && !/\s/.test(short)) return short;
+    } catch { /* Fall back to unquoted or quoted. */ }
+    return `"${str.replace(/"/g, '""')}"`;
+  }
   return `'${String(value).replace(/'/g, `'\\''`)}'`;
 }
 
@@ -291,6 +303,11 @@ function launcherContent(exePath, scriptPath, asNode) {
   if (process.platform === "win32") {
     return [
       "@echo off",
+      "where node >nul 2>nul",
+      "if %ERRORLEVEL% equ 0 (",
+      `  node "${scriptPath}" %*`,
+      "  exit /b %ERRORLEVEL%",
+      ")",
       asNode ? "set \"ELECTRON_RUN_AS_NODE=1\"" : "",
       `"${exePath}" "${scriptPath}" %*`,
       ""

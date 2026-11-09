@@ -96,12 +96,12 @@ lenses.forEach(l => {
 function setActive(name) {
   const blink = /^blink-(red|yellow|green)$/.exec(name);
   const mode  = blink ? "blink" : (name === "think" || name === "ask") ? name : "";
-  const color = blink ? blink[1] : mode ? "yellow" : name;
+  const color = blink ? blink[1] : mode === "think" ? "green" : mode === "ask" ? "yellow" : name;
 
   lenses.forEach(l => {
     const on      = l.classList.contains(color);
     const wasOn   = l.dataset.lit === "1";
-    const newMode = (on && (mode === "blink" || l === yellow)) ? mode : "";
+    const newMode = (on && (mode === "blink" || mode === "think" || mode === "ask")) ? mode : "";
 
     l.classList.toggle("on", on);
     l.dataset.lit = on ? "1" : "0";
