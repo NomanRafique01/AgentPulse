@@ -8,15 +8,15 @@ AgentPulse gives your coding agent an ambient desktop presence. It silently floa
 
 ## ⚡ Quick Install (npm)
 
-You can run AgentPulse directly or install it globally via npm (only **34 kB**!):
+You can install AgentPulse globally via npm (only **35 kB**!):
 
 ```bash
-npm install -g agentpulse
+npm install -g @nomanrafique/agentpulse
 ```
 
 Or run directly without installing:
 ```bash
-npx agentpulse init
+npx @nomanrafique/agentpulse init
 ```
 
 ---
