@@ -1,4 +1,14 @@
 const { app, BrowserWindow, Menu, Tray, clipboard, dialog, ipcMain, nativeImage, screen } = require("electron");
+
+// Enforce single instance so multiple launches don't spawn duplicate tray icons
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    openSavedLights();
+  });
+}
 const { execFile } = require("child_process");
 const crypto = require("crypto");
 const fs = require("fs");
@@ -739,6 +749,16 @@ async function startServer() {
 }
 
 function trayIcon() {
+  const iconSvgPath = path.join(__dirname, "assets", "icon.svg");
+  if (fs.existsSync(iconSvgPath)) {
+    try {
+      const img = nativeImage.createFromPath(iconSvgPath);
+      if (!img.isEmpty()) {
+        return img.resize({ width: 16, height: 16 });
+      }
+    } catch {}
+  }
+
   const size = 32;
   const buffer = Buffer.alloc(size * size * 4);
   const paint = (x, y, source) => {
