@@ -600,8 +600,14 @@ async function cmdSignal(args) {
       ))
     );
 
+    let stopReason = "";
     if (isStopEvent) {
-      state = (payload && payload.error && !String(payload.terminationReason || "").includes("USER")) ? "error" : "stopped";
+      const isError = Boolean(payload && payload.error && !String(payload.terminationReason || "").includes("USER"));
+      const isUserCancel = evLower === "cancel" || evLower === "abort" || evLower === "user_canceled" ||
+        String(payload && payload.terminationReason || "").includes("USER") ||
+        (payload && (payload.action === "cancel" || payload.status === "cancelled" || payload.status === "canceled"));
+      state = isError ? "error" : "stopped";
+      stopReason = isError ? "error" : (isUserCancel ? "cancelled" : "clean");
     } else if (event === "SessionStart" || event === "PreInvocation" || event === "PostToolUse") {
       state = "thinking";
     }
@@ -617,6 +623,7 @@ async function cmdSignal(args) {
       secret: found.connection.secret,
       event: isStopEvent ? "Stop" : (event || eventName),
       state,
+      reason: stopReason,
       toolName: name,
       file,
       conversationId,

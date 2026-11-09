@@ -236,6 +236,18 @@
     speak("Agent needs your input.");
   }
 
+  // CANCELLED — muted short descending tone
+  function soundCancelled() {
+    tone(440, 0,    0.22, 0.25, "sine");
+    tone(370, 0.08, 0.28, 0.22, "sine");
+    tone(293, 0.16, 0.40, 0.18, "sine");
+  }
+
+  // IDLE — very soft ambient tick
+  function soundIdle() {
+    tone(523.25, 0, 0.08, 0.05, "sine");
+  }
+
   // RED (error / stopped / finished) — rich bell chord, clean finish
   function soundDone() {
     const base = 523.25; // C5
@@ -312,11 +324,19 @@
         break;
 
       case "think-blink":
-        soundError();
+        soundThinking();
+        break;
+
+      case "idle":
+        soundIdle();
         break;
 
       case "green":
         soundGreen();
+        break;
+
+      case "terminal":
+        soundTerminal();
         break;
 
       case "read-file":
@@ -353,6 +373,16 @@
         repeatTimer = setInterval(() => {
           triggerNeedInputAlert();
         }, 5000);
+        break;
+
+      case "cancelled":
+        soundCancelled();
+        speak("Stopped.");
+        break;
+
+      case "error":
+        soundError();
+        speak("Agent encountered an error.");
         break;
 
       case "red":
