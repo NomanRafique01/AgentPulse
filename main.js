@@ -15,7 +15,7 @@ const BODY_COLOURS = new Set([
 const WINDOW_SIZES = { small: [190, 50], medium: [214, 56], large: [244, 62] };
 const CONNECT_SIZES = { small: [300, 330], medium: [344, 342], large: [396, 358] };
 const TERMINAL_TIMEOUT = 10 * 60 * 1000; // Commands can run for minutes (builds, tests); keep yellow blinking!
-const THINKING_TIMEOUT = 5 * 1000; // Sensing execution stop: 5 seconds of silence flips light to RED
+const THINKING_TIMEOUT = 60 * 1000; // 60s silence = agent truly stopped → RED
 const TEN_MINUTES = 10 * 60 * 1000;
 const AGENT_STATES = new Set(["working", "thinking", "reading_file", "writing_file", "running_terminal", "asking", "error", "finished", "stopped"]);
 
