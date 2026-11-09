@@ -21,9 +21,19 @@ function portFilePath() {
 
 function readPort() {
   try {
-    const parsed = JSON.parse(fs.readFileSync(portFilePath(), "utf8"));
+    const file = portFilePath();
+    const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
     const port = Number(parsed && parsed.port);
-    return Number.isInteger(port) && port > 0 && port < 65536 ? port : 0;
+    if (!Number.isInteger(port) || port <= 0 || port >= 65536) return 0;
+    if (parsed && typeof parsed.pid === "number") {
+      try {
+        process.kill(parsed.pid, 0);
+      } catch {
+        try { fs.rmSync(file, { force: true }); } catch {}
+        return 0;
+      }
+    }
+    return port;
   } catch {
     return 0;
   }
@@ -130,6 +140,7 @@ function readStdin() {
       if (finished) return;
       finished = true;
       clearTimeout(timer);
+      try { process.stdin.pause(); } catch {}
       resolve(text);
     };
     const timer = setTimeout(finish, STDIN_TIMEOUT);
@@ -490,12 +501,18 @@ async function cmdSignal(args) {
     }
   };
 
+  // INSTANT ALLOW: Unlock Antigravity tool execution immediately with zero delay
+  if (isPreTool) {
+    emitHookResponse();
+  }
+
   try {
     const rawInput = await readStdin();
     const payload = parsePayload(rawInput) || {};
     const event = connection.HOOK_EVENTS.includes(eventName) ? eventName : inferEvent(payload);
     if (event === "PreToolUse" || (payload && payload.toolCall)) {
       isPreTool = true;
+      emitHookResponse();
     }
 
     const found = resolveConnection(payload);
@@ -517,11 +534,14 @@ async function cmdSignal(args) {
       } else {
         state = "thinking";
       }
-    } else if (event === "Stop") {
-      state = "stopped";
+    } else if (event === "Stop" || (payload && (payload.terminationReason || payload.fullyIdle || payload.error))) {
+      state = (payload && payload.error && event === "Stop") ? "error" : "stopped";
     } else if (event === "PreInvocation" || event === "SessionStart" || event === "PostToolUse") {
       state = "thinking";
     }
+
+    const rawConvId = payload && (payload.conversationId || payload.conversation_id || payload.sessionId || payload.session_id);
+    const conversationId = typeof rawConvId === "string" ? rawConvId : "";
 
     const body = {
       route: found.connection.route,
@@ -529,7 +549,7 @@ async function cmdSignal(args) {
       event: event || eventName,
       state,
       toolName: name,
-      conversationId: typeof payload.conversationId === "string" ? payload.conversationId : "",
+      conversationId,
       folder: found.folder,
       workspacePaths: Array.isArray(payload.workspacePaths) ? payload.workspacePaths.slice(0, 4) : [],
       lastUserInput: typeof payload.lastUserInput === "string" ? payload.lastUserInput.slice(0, 200) : "",
@@ -546,15 +566,22 @@ async function cmdSignal(args) {
   } catch {
     // Fail silently
   } finally {
-    // ALWAYS emit valid hook JSON so Antigravity NEVER blocks tool calls
+    // ALWAYS emit valid hook JSON so Antigravity NEVER blocks
     emitHookResponse();
   }
 }
 
 async function cmdStart(args) {
+  const flags = parseFlags(args);
+  const target = path.resolve(flags.folder || process.cwd());
+  const found = connection.findConnection(target);
   const port = readPort();
   if (port) {
-    const res = await request(port, "POST", "/_agentpulse/start", {}).catch(() => null);
+    const res = await request(port, "POST", "/_agentpulse/start", {
+      folder: found ? found.folder : target,
+      route: found && found.connection ? found.connection.route : "",
+      secret: found && found.connection ? found.connection.secret : ""
+    }).catch(() => null);
     if (res && (res.status === 200 || res.status === 204)) {
       process.stdout.write("AgentPulse signal active (summoned).\n");
       return;
@@ -566,6 +593,61 @@ async function cmdStart(args) {
     process.stdout.write("AgentPulse signal summoned.\n");
   } else {
     process.stdout.write("Could not automatically launch GUI. Run 'agentpulse' or check Electron.\n");
+  }
+}
+
+async function cmdOff(args) {
+  const flags = parseFlags(args);
+  const start = path.resolve(flags.folder || process.cwd());
+  const found = connection.findConnection(start);
+  const port = readPort();
+
+  if (port) {
+    if (found && found.connection && !found.connection.broken) {
+      await request(port, "POST", "/_agentpulse/off", {
+        route: found.connection.route,
+        secret: found.connection.secret,
+        folder: found.folder
+      }).catch(() => {});
+    } else {
+      await request(port, "POST", "/_agentpulse/off", {}).catch(() => {});
+    }
+  }
+
+  process.stdout.write([
+    "AgentPulse signal light closed.",
+    found ? `  Hooks remain connected in: ${found.folder}` : "",
+    "  Run 'agentpulse start' to summon the light anytime.",
+    "  Run 'agentpulse unlink' if you want to cleanly remove hooks.",
+    ""
+  ].filter(line => line !== "").join("\n"));
+}
+
+async function cmdUnlink(args) {
+  const flags = parseFlags(args);
+  const start = path.resolve(flags.folder || process.cwd());
+  const found = connection.findConnection(start);
+  const port = readPort();
+
+  if (found) {
+    connection.disconnectFolder(found.folder);
+    if (port && found.connection && !found.connection.broken) {
+      for (const route of ["/_agentpulse/disconnect", "/_agentlight/disconnect", "/_agentpulse/off"]) {
+        await request(port, "POST", route, {
+          route: found.connection.route,
+          secret: found.connection.secret,
+          folder: found.folder
+        }).catch(() => {});
+      }
+    } else if (port) {
+      await request(port, "POST", "/_agentpulse/off", {}).catch(() => {});
+    }
+    process.stdout.write(`Signal unlinked and hooks removed from:\n  ${found.folder}\n`);
+  } else {
+    if (port) {
+      await request(port, "POST", "/_agentpulse/off", {}).catch(() => {});
+    }
+    process.stdout.write(`Notice: No active connection found in ${start}. Signal lights closed.\n`);
   }
 }
 
@@ -588,28 +670,6 @@ async function cmdUninstall() {
   ].join("\n"));
 }
 
-async function cmdOff(args) {
-  const flags = parseFlags(args);
-  const start = path.resolve(flags.folder || process.cwd());
-  const found = connection.findConnection(start);
-  if (!found) {
-    process.stdout.write(`Notice: No active connection found in ${start}\n`);
-    return;
-  }
-  connection.disconnectFolder(found.folder);
-  const port = readPort();
-  if (found.connection && !found.connection.broken) {
-    for (const route of ["/_agentpulse/disconnect", "/_agentlight/disconnect"]) {
-      await request(port, "POST", route, {
-        route: found.connection.route,
-        secret: found.connection.secret,
-        folder: found.folder
-      }).catch(() => {});
-    }
-  }
-  process.stdout.write(`Signal deactivated and hooks removed from:\n  ${found.folder}\n`);
-}
-
 function showHelp() {
   process.stdout.write([
     "AgentPulse ⚡ Real-Time Coding Agent Signals",
@@ -617,7 +677,8 @@ function showHelp() {
     "Usage:",
     "  agentpulse init [folder]     Assign a signal to this project & activate hooks",
     "  agentpulse start             Summon the floating signal widget",
-    "  agentpulse off               Deactivate signal & remove hooks cleanly",
+    "  agentpulse off               Hide/close the light (hooks remain active)",
+    "  agentpulse unlink            Deactivate signal & remove hooks from project",
     "  agentpulse uninstall         Unlink signals and clean workspace",
     "  agentpulse signal <Event>    Relay agent hook event",
     "",
@@ -643,8 +704,9 @@ async function main() {
   if (command === "init" || command === "connect") return cmdInit(args);
   if (command === "start" || command === "summon" || command === "on") return cmdStart(args);
   if (command === "signal") return cmdSignal(args);
-  if (command === "off" || command === "deactivate" || command === "disconnect") return cmdOff(args);
-  if (command === "uninstall") return cmdUninstall(args);
+  if (command === "off" || command === "hide" || command === "close") return cmdOff(args);
+  if (command === "unlink" || command === "deactivate" || command === "disconnect") return cmdUnlink(args);
+  if (command === "uninstall") return cmdUninstall();
   throw new Error(`Unknown command "${command}". Run "agentpulse help".`);
 }
 

@@ -112,6 +112,7 @@ function writeConnection(folder, light) {
 function removeConnectionFile(folder) {
   try {
     fs.rmSync(connectionPath(folder), { force: true });
+    try { fs.rmSync(legacyConnectionPath(folder), { force: true }); } catch {}
     return true;
   } catch {
     return false;
@@ -319,6 +320,11 @@ function launcherContent(exePath, scriptPath, asNode) {
       "@echo off",
       "where node >nul 2>nul",
       "if %ERRORLEVEL% equ 0 (",
+      `  if exist "${scriptPath}" (`,
+      `    node "${scriptPath}" %*`,
+      "    if \"%1\"==\"signal\" exit /b 0",
+      "    exit /b %ERRORLEVEL%",
+      "  )",
       "  if exist \"%~dp0..\\agentpulse.js\" (",
       "    node \"%~dp0..\\agentpulse.js\" %*",
       "    if \"%1\"==\"signal\" exit /b 0",
@@ -329,7 +335,12 @@ function launcherContent(exePath, scriptPath, asNode) {
       "  exit /b %ERRORLEVEL%",
       ")",
       asNode ? "set \"ELECTRON_RUN_AS_NODE=1\"" : "",
-      `"${exePath}" "${scriptPath}" %*`,
+      `if exist "${scriptPath}" (`,
+      `  "${exePath}" "${scriptPath}" %*`,
+      "  if \"%1\"==\"signal\" exit /b 0",
+      "  exit /b %ERRORLEVEL%",
+      ")",
+      `"${exePath}" "%~dp0..\\agentpulse.js" %*`,
       "if \"%1\"==\"signal\" exit /b 0",
       ""
     ].filter(line => line !== "").join("\r\n");
@@ -337,6 +348,12 @@ function launcherContent(exePath, scriptPath, asNode) {
   return [
     "#!/bin/sh",
     "if command -v node >/dev/null 2>&1; then",
+    `  if [ -f "${scriptPath}" ]; then`,
+    `    node "${scriptPath}" "$@"`,
+    "    RET=$?",
+    "    if [ \"$1\" = \"signal\" ]; then exit 0; fi",
+    "    exit $RET",
+    "  fi",
     "  SCRIPT_DIR=\"$(cd \"$(dirname \"$0\")/..\" && pwd)\"",
     "  if [ -f \"$SCRIPT_DIR/agentpulse.js\" ]; then",
     "    node \"$SCRIPT_DIR/agentpulse.js\" \"$@\"",
@@ -356,6 +373,25 @@ function launcherContent(exePath, scriptPath, asNode) {
   ].join("\n");
 }
 
+function syncHomeFiles(sourceDir) {
+  const destDir = path.join(os.homedir(), ".agentpulse");
+  if (!fs.existsSync(destDir)) return;
+  if (path.resolve(sourceDir).toLowerCase() === path.resolve(destDir).toLowerCase()) return;
+  const files = [
+    "agentpulse.js", "agentlight.js", "connection.js", "main.js",
+    "renderer.js", "signal.js", "sound.js", "index.html", "styles.css", "package.json"
+  ];
+  for (const file of files) {
+    try {
+      const src = path.join(sourceDir, file);
+      const dst = path.join(destDir, file);
+      if (fs.existsSync(src)) {
+        fs.copyFileSync(src, dst);
+      }
+    } catch {}
+  }
+}
+
 function ensureLauncher(exePath, scriptPath, asNode) {
   const target = launcherPath();
   const legacyTarget = legacyLauncherPath();
@@ -371,6 +407,11 @@ function ensureLauncher(exePath, scriptPath, asNode) {
       fs.writeFileSync(legacyTarget, content, "utf8");
       if (process.platform !== "win32") fs.chmodSync(legacyTarget, 0o755);
     } catch { /* Ignore legacy write errors */ }
+
+    // Sync files to ~/.agentpulse if applicable
+    if (scriptPath) {
+      syncHomeFiles(path.dirname(scriptPath));
+    }
 
     return { ok: true, path: target };
   } catch {

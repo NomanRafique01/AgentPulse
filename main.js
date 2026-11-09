@@ -327,10 +327,12 @@ function createSetupWindow() {
 }
 
 function createLightWindow(light, options = {}) {
+  light.closed = false;
   const existing = lightWindows.get(light.id);
   if (existing && !existing.isDestroyed()) {
     existing.show();
     existing.focus();
+    pushLightState(light);
     return existing;
   }
 
@@ -415,11 +417,24 @@ function readBody(request) {
   });
 }
 
-function routeLight(route, secret) {
+function routeLight(route, secret, folder) {
   const cleanRoute = String(route || "");
   const cleanSecret = String(secret || "");
-  if (!cleanRoute || !cleanSecret) return null;
-  return config.lights.find(item => `${item.slug}-${item.secret}` === cleanRoute && item.secret === cleanSecret) || null;
+  if (cleanRoute && cleanSecret) {
+    const match = config.lights.find(item => `${item.slug}-${item.secret}` === cleanRoute && item.secret === cleanSecret);
+    if (match) return match;
+  }
+  if (folder) {
+    const norm = normaliseFolder(folder);
+    if (norm) {
+      const matchFolder = config.lights.find(item => Array.isArray(item.folders) && item.folders.includes(norm));
+      if (matchFolder) return matchFolder;
+    }
+  }
+  if (config.lights.length === 1) {
+    return config.lights[0];
+  }
+  return null;
 }
 
 function sanitiseQuestion(value) {
@@ -452,10 +467,19 @@ function applyAgentSignal(light, body) {
   const question = state === "asking" ? sanitiseQuestion(body.question) : null;
 
   if (body.event === "Stop" || state === "stopped" || state === "finished" || state === "error") {
-    for (const [id] of runtime.agents) {
-      if (id === conversationId || !body.conversationId) {
-        runtime.agents.delete(id);
-      }
+    // When stopping or terminated, clear all active working states
+    // so no stale "thinking" agent holds the light green
+    runtime.agents.clear();
+    runtime.agents.set(conversationId, { state: state === "error" ? "error" : "stopped", question: null, updatedAt: Date.now() });
+    light.lastSignal = "red";
+    pushLightState(light);
+    return;
+  }
+
+  // When a new turn or tool begins, clear any stopped state
+  for (const [id, agent] of runtime.agents) {
+    if (agent.state === "stopped" || agent.state === "finished") {
+      runtime.agents.delete(id);
     }
   }
 
@@ -477,21 +501,31 @@ async function handleAgentBody(request, response, action) {
   }
   if (!body || typeof body !== "object" || Array.isArray(body)) return respond(response, 400, "bad request");
 
-  const light = routeLight(body.route, body.secret);
+  const light = routeLight(body.route, body.secret, body.folder);
   if (!light) return respond(response, 410, "light closed");
   if (action === "signal") {
-    if (light.closed) return respond(response, 410, "light closed");
+    if (light.closed) {
+      light.closed = false;
+      createLightWindow(light);
+    }
     applyAgentSignal(light, body);
     return respond(response, 200, "ok");
   }
   if (action === "connect") {
-    if (light.closed) return respond(response, 410, "light closed");
+    light.closed = false;
+    createLightWindow(light);
     addFolder(light, body.folder);
     pushLightState(light);
     return respond(response, 200, "ok");
   }
-  if (action === "disconnect") {
+  if (action === "disconnect" || action === "off") {
     removeFolder(light, body.folder);
+    light.closed = true;
+    const win = lightWindows.get(light.id);
+    if (win && !win.isDestroyed()) {
+      win.destroy();
+      lightWindows.delete(light.id);
+    }
     pushLightState(light);
     return respond(response, 200, "ok");
   }
@@ -535,10 +569,22 @@ async function handleRequest(request, response) {
       });
     }
     if (parts.length === 2 && (parts[1] === "show" || parts[1] === "start")) {
+      readConfig();
+      ensureDefaultLight();
       openSavedLights();
       return respond(response, 200, "ok");
     }
-    if (parts.length === 2 && ["signal", "connect", "disconnect"].includes(parts[1])) {
+    if (parts.length === 2 && parts[1] === "off") {
+      for (const [id, win] of lightWindows) {
+        if (win && !win.isDestroyed()) {
+          win.destroy();
+        }
+      }
+      lightWindows.clear();
+      config.lights.forEach(light => { light.closed = true; });
+      return respond(response, 200, "ok");
+    }
+    if (parts.length === 2 && ["signal", "connect", "disconnect", "off"].includes(parts[1])) {
       return handleAgentBody(request, response, parts[1]);
     }
     return respond(response, 404, "not found");

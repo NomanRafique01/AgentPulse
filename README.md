@@ -141,15 +141,14 @@ agentpulse init
 # Summon the desktop signal window manually
 agentpulse start
 
-# Deactivate signals and cleanly decouple workspace hooks
+# Hide/close the light (hooks remain active for the workspace)
 agentpulse off
 
+# Decouple workspace hooks and deactivate signal
+agentpulse unlink
+
 # Send a manual status signal test
-agentpulse send --state thinking
-agentpulse send --state writing
-agentpulse send --state ask
-agentpulse send --state error
-agentpulse send --state idle
+agentpulse signal Stop
 
 # Complete removal and clean up
 agentpulse uninstall
