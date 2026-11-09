@@ -12,7 +12,7 @@ const BODY_COLOURS = new Set([
   "#1b1e20", "#e9e8e2", "#2f5573", "#5f4a72",
   "#a95a2c", "#3c5e4a", "#7e3b3c", "#6d7479"
 ]);
-const WINDOW_SIZES = { small: [300, 305], medium: [344, 317], large: [396, 333] };
+const WINDOW_SIZES = { small: [190, 192], medium: [214, 198], large: [244, 207] };
 const CONNECT_SIZES = { small: [300, 330], medium: [344, 342], large: [396, 358] };
 const TEN_MINUTES = 10 * 60 * 1000;
 const AGENT_STATES = new Set(["working", "thinking", "writing_file", "running_terminal", "asking", "error", "finished", "stopped"]);
@@ -267,13 +267,14 @@ function removePortFile() {
 }
 
 function windowBounds(width, height, cascadeIndex) {
-  const { workArea } = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+  const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+  const { bounds, workArea } = display;
   const offset = cascadeIndex ? cascadeIndex * 18 : 0;
-  const x = Math.round(workArea.x + (workArea.width - width) / 2) + offset;
-  const y = Math.round(workArea.y + (workArea.height - height) / 2) + offset;
+  const x = Math.round(bounds.x + (bounds.width - width) / 2) + offset;
+  const y = bounds.y;
   return {
     x: Math.min(Math.max(x, workArea.x + 6), workArea.x + workArea.width - width - 6),
-    y: Math.min(Math.max(y, workArea.y + 6), workArea.y + workArea.height - height - 6)
+    y
   };
 }
 
@@ -346,7 +347,12 @@ function createLightWindow(light, options = {}) {
   win.loadFile("index.html", {
     query: { mode: "light", id: light.id, ...(options.connect ? { connect: "1" } : {}) }
   });
-  win.once("ready-to-show", () => win.show());
+  win.once("ready-to-show", () => {
+    const { bounds } = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+    const [w] = win.getSize();
+    win.setPosition(Math.round(bounds.x + (bounds.width - w) / 2), bounds.y, false);
+    win.show();
+  });
   win.on("closed", () => {
     lightWindows.delete(light.id);
     if (!isQuitting && config.lights.includes(light)) light.closed = true;
