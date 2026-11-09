@@ -1,0 +1,630 @@
+{
+  "animation-auditor": {
+    "name": "animation-auditor",
+    "description": "Whole-codebase animation auditor and motion health inspector. Scans CSS, Framer Motion, and web animations to identify jank, missing transitions, layout shifts, and accessibility flaws, generating an itemized motion remediation roadmap. Use when reviewing codebase motion, diagnosing animation debt, or assessing UI polish. Triggers: $animation-auditor, animation-audit:, 'audit animations', 'motion audit'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/animation-auditor/SKILL.md",
+    "size": 2658,
+    "references": []
+  },
+  "animation-builder": {
+    "name": "animation-builder",
+    "description": "Purposeful web motion designer and animator. Builds physics-based web animations, staggered transitions, micro-interactions, and state changes with custom easing and strict 16.6ms GPU frame budgets. Use when animating components, page transitions, menus, or interactive states. Triggers: $animation-builder, animate:, 'build animation', 'add motion'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/animation-builder/SKILL.md",
+    "size": 3695,
+    "references": []
+  },
+  "animation-opportunities": {
+    "name": "animation-opportunities",
+    "description": "Motion opportunity scout and interaction enhancer. Analyzes static interfaces to identify high-value moments for purposeful motion: loading skeletons, state reveals, layout transitions, and feedback responses. Use when a UI feels static, lifeless, or needs engaging micro-interactions. Triggers: $animation-opportunities, motion-spots:, 'find animations', 'motion opportunities'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/animation-opportunities/SKILL.md",
+    "size": 3211,
+    "references": []
+  },
+  "animation-performance": {
+    "name": "animation-performance",
+    "description": "GPU composite layer optimizer and animation performance tuner. Fixes janky animations and dropped frames by eliminating layout thrashing and forcing transform/opacity GPU compositing within a 60fps budget. Use when animations lag, stutter, drop frames, or spike CPU usage. Triggers: $animation-performance, anim-perf:, 'fix animation lag', 'tune motion performance'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/animation-performance/SKILL.md",
+    "size": 3919,
+    "references": []
+  },
+  "animation-reviewer": {
+    "name": "animation-reviewer",
+    "description": "Craft and timing reviewer for existing web motion. Evaluates curves, easing, duration, and choreography against senior design-engineering craft standards, flagging over-animated or distracting elements. Use when reviewing motion PRs, checking animation taste, or refining timing. Triggers: $animation-reviewer, anim-review:, 'review motion', 'critique animation'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/animation-reviewer/SKILL.md",
+    "size": 3035,
+    "references": []
+  },
+  "anti-ai-sop-agent": {
+    "name": "anti-ai-sop-agent",
+    "description": "Standalone quality gate auditor agent. Scans text, UI markup, SVG vectors, typography, and palettes across 6 dimensions to eliminate AI clichés, generating a strict PASS/WARN/FAIL scorecard with remediation steps. Use when auditing code or UI for synthetic AI tells. Triggers: $anti-slop, gate:, audit:, 'anti-slop audit', 'slop gate', 'check ai tells'.",
+    "category": "anti-ai-sop",
+    "aliases": [],
+    "path": ".agents/skills/anti-ai-sop-agent/SKILL.md",
+    "size": 4051,
+    "references": []
+  },
+  "anti-slop-enforcer": {
+    "name": "anti-slop-enforcer",
+    "description": "Master quality gate enforcer for eliminating AI slop, conversational filler, and synthetic clichés from code, copy, and UI components. Scans output against banned phrasebooks and generic styling patterns before delivery. Use on any technical text, documentation, or UI code. Triggers: $anti-slop-enforcer, kill-slop:, 'kill slop', 'remove ai filler'.",
+    "category": "anti-ai-sop",
+    "aliases": [],
+    "path": ".agents/skills/anti-slop-enforcer/SKILL.md",
+    "size": 5138,
+    "references": []
+  },
+  "anti-slop-planner": {
+    "name": "anti-slop-planner",
+    "description": "Pre-remediation anti-AI SOP audit planner. Scans code, UI markup, SVG icons, and copy to catalog detected AI tells across 6 dimensions with exact file:line citations and presents a structured remediation plan for user confirmation. Use before refactoring AI-generated code. Triggers: $plan-anti-slop, audit-plan:, 'plan anti-slop', 'audit plan'.",
+    "category": "anti-ai-sop",
+    "aliases": [],
+    "path": ".agents/skills/anti-slop-planner/SKILL.md",
+    "size": 3211,
+    "references": []
+  },
+  "apple-feel": {
+    "name": "apple-feel",
+    "description": "Apple-grade fluid interaction and spring physics craftsman. Implements iOS/macOS tactile micro-interactions, momentum scrolling, rubber-banding, fluid gesture tracking, and refined haptic feel. Use when building mobile-first web apps, touch interactions, or Apple-style UX. Triggers: $apple-feel, apple-ui:, 'apple feel', 'ios interactions', 'fluid gestures'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/apple-feel/SKILL.md",
+    "size": 4886,
+    "references": []
+  },
+  "architecture-improver": {
+    "name": "architecture-improver",
+    "description": "System architecture debt scanner and refactoring planner. Scans backends for circular dependencies, high coupling, leaky abstractions, and interface debt, producing a visual improvement roadmap without applying unapproved edits. Use when refactoring messy backends or modularizing codebases. Triggers: $architecture-improver, improve-arch:, 'improve architecture', 'clean up architecture'.",
+    "category": "backend",
+    "aliases": [],
+    "path": ".agents/skills/architecture-improver/SKILL.md",
+    "size": 2793,
+    "references": []
+  },
+  "architecture-master": {
+    "name": "architecture-master",
+    "description": "Apex master orchestrator for system architecture, isolated git worktrees, multi-agent task dispatching, and cross-session planning maps. Coordinates large multi-ticket engineering efforts and complex system designs. Use for major architectural designs, worktree setup, or sub-agent delegation. Triggers: $architect, arch:, isolate:, 'architecture master', 'system design'.",
+    "category": "orchestrators",
+    "aliases": [],
+    "path": ".agents/skills/architecture-master/SKILL.md",
+    "size": 2451,
+    "references": []
+  },
+  "backend-master": {
+    "name": "backend-master",
+    "description": "Category master orchestrator for backend development, API contracts, data models, and TDD execution. Enforces Karpathy surgical simplicity, red-green-refactor loops, and responsive backend data contracts without pixel constraints. Use for backend features, APIs, database logic, and server engineering. Triggers: $backend, api:, be:, 'backend master', 'backend engineer'.",
+    "category": "orchestrators",
+    "aliases": [],
+    "path": ".agents/skills/backend-master/SKILL.md",
+    "size": 1917,
+    "references": []
+  },
+  "backend-planner": {
+    "name": "backend-planner",
+    "description": "Pre-implementation backend architecture planner. Formulates domain models, API payloads, database schemas, tracer-bullet tickets, and TDD test suites before touching code, presenting the blueprint for user confirmation. Use before building APIs or backend services. Triggers: $plan-backend, plan-api:, 'plan backend', 'plan api'.",
+    "category": "backend",
+    "aliases": [],
+    "path": ".agents/skills/backend-planner/SKILL.md",
+    "size": 2797,
+    "references": []
+  },
+  "bug-diagnoser": {
+    "name": "bug-diagnoser",
+    "description": "Systematic regression investigator and root-cause isolator. Executes git bisect loops, log tracing, state inspection, and performance bottleneck profiling to diagnose elusive bugs without guesswork. Use for hard-to-reproduce bugs, intermittent race conditions, and performance drops. Triggers: $bug-diagnoser, diagnose:, 'diagnose bug', 'investigate regression'.",
+    "category": "debugging",
+    "aliases": [],
+    "path": ".agents/skills/bug-diagnoser/SKILL.md",
+    "size": 3661,
+    "references": []
+  },
+  "canvas-art": {
+    "name": "canvas-art",
+    "description": "Static visual art, poster, and canvas layout generator. Crafts high-resolution graphics, geometric posters, printable assets, and decorative vector canvas compositions using clean mathematical layout principles. Use for standalone generative art, posters, exportable cards, and graphics. Triggers: $canvas-art, canvas:, 'generate poster', 'canvas art'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/canvas-art/SKILL.md",
+    "size": 2022,
+    "references": []
+  },
+  "code-reviewer": {
+    "name": "code-reviewer",
+    "description": "Dual-pass code reviewer for repo standards, architectural integrity, and security vulnerabilities. Evaluates diffs against specification requirements, edge cases, error handling, and performance regressions. Use when reviewing PRs, staging commits, or auditing code quality. Triggers: $code-reviewer, review-code:, 'review diff', 'code review'.",
+    "category": "debugging",
+    "aliases": [],
+    "path": ".agents/skills/code-reviewer/SKILL.md",
+    "size": 2938,
+    "references": []
+  },
+  "codebase-designer": {
+    "name": "codebase-designer",
+    "description": "Deep module designer and interface architect. Designs deep software interfaces, defines clean module seams, eliminates shallow wrapper classes, and optimizes information hiding across backend layers. Use when designing new modules, restructuring libraries, or reducing API surface area. Triggers: $codebase-designer, design-module:, 'design codebase', 'deep module'.",
+    "category": "backend",
+    "aliases": [],
+    "path": ".agents/skills/codebase-designer/SKILL.md",
+    "size": 3388,
+    "references": []
+  },
+  "context-handoff": {
+    "name": "context-handoff",
+    "description": "Session continuity compactor and context handoff creator. Compiles session history, active architectural decisions, git state, and open tasks into a self-contained handoff document for cold-start continuation. Use when ending long sessions, approaching token limits, or transferring tasks. Triggers: $context-handoff, handoff:, 'session handoff', 'compact context'.",
+    "category": "memory",
+    "aliases": [],
+    "path": ".agents/skills/context-handoff/SKILL.md",
+    "size": 2494,
+    "references": []
+  },
+  "debug-master": {
+    "name": "debug-master",
+    "description": "Apex master orchestrator for debugging, error investigation, and diagnostic verification. Enforces a strict hypothesis-driven diagnostic gate via debug-planner before permitting code modifications, demanding raw CLI verification evidence before claiming fixes. Triggers: $debug, fix:, 'debug master', 'fix bug', 'investigate issue'.",
+    "category": "orchestrators",
+    "aliases": [],
+    "path": ".agents/skills/debug-master/SKILL.md",
+    "size": 1511,
+    "references": []
+  },
+  "debug-planner": {
+    "name": "debug-planner",
+    "description": "Pre-debugging diagnostic planner and hypothesis formulation engine. Formulates symptom statements, reproduction steps, falsifiable hypotheses, and evidence collection roadmaps before allowing code modifications. Use whenever a bug or error is reported. Triggers: $plan-debug, plan-fix:, 'plan debug', 'diagnostic plan'.",
+    "category": "debugging",
+    "aliases": [],
+    "path": ".agents/skills/debug-planner/SKILL.md",
+    "size": 2438,
+    "references": []
+  },
+  "design-engineering": {
+    "name": "design-engineering",
+    "description": "Micro-interaction and 9-state design-engineering polish specialist. Crafts robust interactive states (idle, hover, active, focus-visible, loading, disabled, empty, error, success) with tactile feedback and spring physics. Use when polishing buttons, inputs, dropdowns, and interactive widgets. Triggers: $design-engineering, polish-ui:, 'ui polish', 'design engineering', 'nine states'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/design-engineering/SKILL.md",
+    "size": 4899,
+    "references": []
+  },
+  "design-taste-frontend": {
+    "name": "design-taste-frontend",
+    "description": "Anti-slop frontend art direction engine distilled from 247 curated award sites. Replaces generic AI templates with subject-derived palettes, fluid typography, asymmetric layouts, and screenshot critique loops. Use when designing or polishing web pages, landing screens, or apps. Triggers: $taste, kill-slop:, 'design taste', 'taste kill', 'award-level ui'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/design-taste-frontend/SKILL.md",
+    "size": 4501,
+    "references": [
+      "references/app-screens.md",
+      "references/building-and-composition.md",
+      "references/direction-draw.md",
+      "references/house-rules.md",
+      "references/laws-of-the-craft.md",
+      "references/special-cases.md"
+    ]
+  },
+  "desktop-ui-architect": {
+    "name": "desktop-ui-architect",
+    "description": "Desktop workstation UI and wide-screen layout architect (768px–2560px). Implements multi-pane density, container queries (@container), fluid clamp scales, and max-width layout bounds (1200px–1440px) to prevent wide-screen distortion. Use when building desktop web applications and admin consoles. Triggers: $desktop-ui, desktop-ui:, 'desktop layout', 'widescreen ui'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/desktop-ui-architect/SKILL.md",
+    "size": 4460,
+    "references": []
+  },
+  "domain-modeler": {
+    "name": "domain-modeler",
+    "description": "Domain-driven design modeler and architectural glossary builder. Models ubiquitous languages, entities, value objects, domain invariants, and ADRs (Architecture Decision Records) into formal schemas and GLOSSARY.md. Use when designing business domain models or core domain entities. Triggers: $domain-modeler, model-domain:, 'domain model', 'glossary builder'.",
+    "category": "backend",
+    "aliases": [],
+    "path": ".agents/skills/domain-modeler/SKILL.md",
+    "size": 2557,
+    "references": []
+  },
+  "dynamic-ui-engine": {
+    "name": "dynamic-ui-engine",
+    "description": "Master responsive sizing engine and fluid mathematical layout calculator. Computes CSS clamp() formulas, fluid typography scales, aspect ratios, and zero-CLS containers across 320px to 2560px viewports. Use for fluid typography, responsive scaling, and layout dimension calculations. Triggers: $dynamic-ui, dynamic-sizing:, 'fluid sizing', 'responsive clamp'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/dynamic-ui-engine/SKILL.md",
+    "size": 3652,
+    "references": []
+  },
+  "frontend-baseline": {
+    "name": "frontend-baseline",
+    "description": "Mandatory unified frontend baseline bundle condensing Taste Kill v2, Anti-AI SOP, and dynamic dual-viewport responsiveness into a single context. Always active on UI tasks alongside up to 3 task skills. Triggers: $frontend-baseline, frontend-baseline:, 'frontend baseline', 'ui baseline'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/frontend-baseline/SKILL.md",
+    "size": 3143,
+    "references": []
+  },
+  "frontend-master": {
+    "name": "frontend-master",
+    "description": "Apex master orchestrator for all frontend design, dynamic layout architecture, typography, SVG icons, and animation. Enforces the mandatory frontend-baseline bundle and coordinates specialized UI skills. Use for frontend builds, screen design, and styling. Triggers: $frontend, ui:, fe:, 'frontend master', 'ui orchestrator'.",
+    "category": "orchestrators",
+    "aliases": [],
+    "path": ".agents/skills/frontend-master/SKILL.md",
+    "size": 2868,
+    "references": []
+  },
+  "frontend-planner": {
+    "name": "frontend-planner",
+    "description": "Pre-build UI design and dual-viewport responsive blueprint engine. Generates subject inventories, fluid design token matrices, mobile layouts (320px–480px), and desktop layouts (768px–2560px) before coding, presenting the plan for confirmation. Triggers: $plan-frontend, plan-ui:, 'plan frontend', 'plan ui'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/frontend-planner/SKILL.md",
+    "size": 3677,
+    "references": []
+  },
+  "git-atomic-committer": {
+    "name": "git-atomic-committer",
+    "description": "Multi-domain atomic commit splitting engine. Analyzes staged diffs, segregates cross-domain changes into sequential atomic commits (Core Logic, Tests, UI, Memory), and crafts Conventional Commit messages with verification proof. Triggers: $commit, commit:, 'git commit', 'atomic commit', 'commit changes'.",
+    "category": "git",
+    "aliases": [],
+    "path": ".agents/skills/git-atomic-committer/SKILL.md",
+    "size": 6141,
+    "references": []
+  },
+  "git-branch-manager": {
+    "name": "git-branch-manager",
+    "description": "Branch lifecycle and working tree hygiene orchestrator. Enforces kebab-case taxonomy (feat/, fix/, phase/), verifies clean git trees, executes rebase synchronizations against main, and safely prunes merged branches. Triggers: $branch, branch:, 'create branch', 'switch branch', 'sync branch', 'git rebase'.",
+    "category": "git",
+    "aliases": [],
+    "path": ".agents/skills/git-branch-manager/SKILL.md",
+    "size": 4011,
+    "references": []
+  },
+  "git-isolator": {
+    "name": "git-isolator",
+    "description": "Git worktree isolation and physical branch workspace manager. Creates isolated git worktrees for new features or sub-agent tasks, preventing dirty working trees and cross-feature contamination. Use before starting experimental or multi-branch work. Triggers: $git-isolator, isolate-workspace:, 'isolate git', 'create worktree'.",
+    "category": "architecture",
+    "aliases": [],
+    "path": ".agents/skills/git-isolator/SKILL.md",
+    "size": 2335,
+    "references": []
+  },
+  "git-master": {
+    "name": "git-master",
+    "description": "Apex master orchestrator for Git version control, atomic commit splitting, branch lifecycle hygiene, and virtual memory phase commit synchronization. Coordinates git-atomic-committer, git-branch-manager, and git-phase-committer. Triggers: $git, git:, 'git master', 'git workflow'.",
+    "category": "orchestrators",
+    "aliases": [],
+    "path": ".agents/skills/git-master/SKILL.md",
+    "size": 3154,
+    "references": []
+  },
+  "git-phase-committer": {
+    "name": "git-phase-committer",
+    "description": "Virtual memory phase completion commit hook. Creates atomic, verified Git commits tied directly to memory phase completions, bundling code, tests, and phase documentation with raw verification proof. Triggers: $phase-commit, phase-commit:, 'commit phase', 'phase commit hook'.",
+    "category": "git",
+    "aliases": [],
+    "path": ".agents/skills/git-phase-committer/SKILL.md",
+    "size": 4517,
+    "references": []
+  },
+  "implementation-planner": {
+    "name": "implementation-planner",
+    "description": "Pre-implementation technical planner and step sequencer. Deconstructs complex user stories and technical requirements into concrete, sequential implementation steps with test assertions without writing to disk memory. Triggers: $plan, $plan-impl, plan-impl:, 'implementation plan', 'plan implementation'.",
+    "category": "backend",
+    "aliases": [],
+    "path": ".agents/skills/implementation-planner/SKILL.md",
+    "size": 2585,
+    "references": []
+  },
+  "issue-triager": {
+    "name": "issue-triager",
+    "description": "Issue tracker triager and reproduction verifier. Evaluates bug reports, verifies reproduction steps, identifies missing diagnostic info, and crafts actionable agent briefs with test fixtures. Use when triaging GitHub issues, customer bug reports, or error logs. Triggers: $issue-triager, triage-issue:, 'triage issue', 'verify bug report'.",
+    "category": "debugging",
+    "aliases": [],
+    "path": ".agents/skills/issue-triager/SKILL.md",
+    "size": 2590,
+    "references": []
+  },
+  "karpathy-coder": {
+    "name": "karpathy-coder",
+    "description": "Surgical minimal-diff implementation coder channeling Andrej Karpathy. Favors minimal blast radius, stdlib over external packages, YAGNI simplicity, and zero speculative over-engineering. Use when implementing surgical code edits, lean features, or minimal refactors. Triggers: $karpathy, karpathy-code:, 'surgical code', 'minimal diff', 'karpathy style'.",
+    "category": "backend",
+    "aliases": [],
+    "path": ".agents/skills/karpathy-coder/SKILL.md",
+    "size": 2937,
+    "references": []
+  },
+  "large-task-mapper": {
+    "name": "large-task-mapper",
+    "description": "Multi-session project mapper and decision ticket breaker. Maps complex multi-week projects into a dependency-ordered graph of decision tickets across multiple agent sessions, tracking unknowns and architectural choices. Use when starting large complex initiatives. Triggers: $large-task-mapper, map-project:, 'large task map', 'project roadmap'.",
+    "category": "architecture",
+    "aliases": [],
+    "path": ".agents/skills/large-task-mapper/SKILL.md",
+    "size": 2382,
+    "references": []
+  },
+  "mcp-builder": {
+    "name": "mcp-builder",
+    "description": "Model Context Protocol (MCP) server architect and implementer. Builds FastMCP/stdio MCP servers exposing tools, resources, and prompts to connect LLM agents to external APIs, databases, and local systems. Use when building or testing MCP servers. Triggers: $mcp-builder, build-mcp:, 'mcp builder', 'create mcp server'.",
+    "category": "backend",
+    "aliases": [],
+    "path": ".agents/skills/mcp-builder/SKILL.md",
+    "size": 3868,
+    "references": []
+  },
+  "memory-master": {
+    "name": "memory-master",
+    "description": "User-controlled Virtual Memory orchestrator. Manages persistent disk-backed plans (.agents/memory/plans/) and execution phases (.agents/memory/phases/), renders the Live Chat Dashboard, and archives completed phases upon explicit user consent. Triggers: $memory, memory:, 'save to memory', 'add to memory', 'memory master'.",
+    "category": "orchestrators",
+    "aliases": [],
+    "path": ".agents/skills/memory-master/SKILL.md",
+    "size": 3938,
+    "references": []
+  },
+  "mobile-native-feel": {
+    "name": "mobile-native-feel",
+    "description": "Mobile web native-feel optimizer (320px–480px). Eliminates 300ms mobile tap delays, configures safe-area-inset padding for device notches, enforces 100svh viewport geometry, and adds native iOS/Android touch behaviors. Use when making mobile web apps feel native. Triggers: $mobile-native-feel, mobile-feel:, 'mobile native feel', 'native web app'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/mobile-native-feel/SKILL.md",
+    "size": 4871,
+    "references": []
+  },
+  "phase-planner": {
+    "name": "phase-planner",
+    "description": "Virtual memory phase generator and live chat dashboard manager. Creates master plans in .agents/memory/plans/main-plan.md, decomposes features into structured phase files (.agents/memory/phases/), and tracks progress via real-time chat status boards. Use when the user requests multi-phase disk planning. Triggers: $phase-planner, phase-plan:, 'phase planner', 'create memory phases'.",
+    "category": "memory",
+    "aliases": [],
+    "path": ".agents/skills/phase-planner/SKILL.md",
+    "size": 6115,
+    "references": []
+  },
+  "phone-layout-master": {
+    "name": "phone-layout-master",
+    "description": "Mobile phone layout perfectionist (320px–480px). Enforces 100svh dynamic sizing, 44×44px minimum touch targets, thumb-zone bottom navigation sheets, and zero horizontal overflow. Use for mobile screens, phone views, and small-screen layouts. Triggers: $phone-layout, phone-ui:, 'phone layout', 'mobile screen layout'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/phone-layout-master/SKILL.md",
+    "size": 4126,
+    "references": []
+  },
+  "pr-writer": {
+    "name": "pr-writer",
+    "description": "Pull request documentation craftsman. Analyzes git commits and diffs to generate comprehensive, review-ready pull request descriptions complete with rationale, architecture diagrams, risk assessments, and test verification evidence. Use when preparing PRs for review. Triggers: $pr-writer, write-pr:, 'write pr', 'generate pr description'.",
+    "category": "backend",
+    "aliases": [],
+    "path": ".agents/skills/pr-writer/SKILL.md",
+    "size": 2136,
+    "references": []
+  },
+  "research-agent": {
+    "name": "research-agent",
+    "description": "Primary source technical researcher and documentation investigator. Investigates complex APIs, libraries, and protocols against authoritative docs, producing cited Markdown findings without hallucinated claims. Use when verifying undocumented APIs or platform changes. Triggers: $research-agent, research:, 'research topic', 'investigate docs'.",
+    "category": "architecture",
+    "aliases": [],
+    "path": ".agents/skills/research-agent/SKILL.md",
+    "size": 2235,
+    "references": []
+  },
+  "responsive-contract-enforcer": {
+    "name": "responsive-contract-enforcer",
+    "description": "Responsive API and data contract enforcer. Audits backend payloads and database schemas to strictly forbid fixed pixel dimensions, mandating explicit aspect ratios, fluid clamp metadata, and responsive srcset arrays. Use when defining API responses, media schemas, or full-stack models. Triggers: $responsive-contract, responsive-api:, 'responsive contract', 'responsive api contract'.",
+    "category": "backend",
+    "aliases": [],
+    "path": ".agents/skills/responsive-contract-enforcer/SKILL.md",
+    "size": 3045,
+    "references": []
+  },
+  "root-cause-debugger": {
+    "name": "root-cause-debugger",
+    "description": "Evidence-first root cause debugger. Enforces rigorous diagnostic isolation before any code edits, generating minimal reproductions, logging traces, and identifying precise failure points. Use for debugging crashes, logic bugs, and data corruptions. Triggers: $root-cause, root-cause:, 'find root cause', 'root cause debugging'.",
+    "category": "debugging",
+    "aliases": [],
+    "path": ".agents/skills/root-cause-debugger/SKILL.md",
+    "size": 3671,
+    "references": []
+  },
+  "session-continuity": {
+    "name": "session-continuity",
+    "description": "Cross-session state recovery and continuous execution manager. Scans virtual memory plans and phases to reconstruct active progress across cold starts, preventing duplicate work and logging session deltas to session-log.md. Use at the beginning of sessions or when resuming tasks. Triggers: $session-continuity, resume-session:, 'where were we', 'resume session'.",
+    "category": "memory",
+    "aliases": [],
+    "path": ".agents/skills/session-continuity/SKILL.md",
+    "size": 2359,
+    "references": []
+  },
+  "setup-wizard": {
+    "name": "setup-wizard",
+    "description": "Interactive bash setup wizard and human-in-the-loop task generator. Generates guided shell scripts for human-only steps (cloud provisioning, credential generation, secret insertion, browser-based OAuth), recording choices to memory decisions. Use for setup workflows requiring user intervention. Triggers: $setup-wizard, setup-wizard:, 'run setup wizard', 'interactive setup'.",
+    "category": "architecture",
+    "aliases": [],
+    "path": ".agents/skills/setup-wizard/SKILL.md",
+    "size": 2638,
+    "references": []
+  },
+  "skill-creator": {
+    "name": "skill-creator",
+    "description": "Skill Brain authoring and benchmarking engine. Scans, validates, scaffolds, and evaluates new skill packages against the open standard (Agent Skills), testing trigger sensitivity and token efficiency. Use when creating, modifying, or testing skills. Triggers: $skill-creator, create-skill:, 'create skill', 'author skill'.",
+    "category": "architecture",
+    "aliases": [],
+    "path": ".agents/skills/skill-creator/SKILL.md",
+    "size": 2548,
+    "references": []
+  },
+  "spec-implementer": {
+    "name": "spec-implementer",
+    "description": "Tracer-bullet specification implementer. Implements features sequentially from formal specifications and ticket dependency graphs, committing atomic verified increments at each milestone. Use when executing implementation plans or ticket backlogs. Triggers: $spec-implementer, implement-spec:, 'implement spec', 'build tickets'.",
+    "category": "backend",
+    "aliases": [],
+    "path": ".agents/skills/spec-implementer/SKILL.md",
+    "size": 2103,
+    "references": []
+  },
+  "spec-writer": {
+    "name": "spec-writer",
+    "description": "Formal technical specification synthesizer. Converts conversation context, user requirements, and system constraints into precise technical specifications with interface definitions, sequence diagrams, and test acceptance criteria. Use before developing non-trivial features. Triggers: $spec-writer, write-spec:, 'write spec', 'technical specification'.",
+    "category": "backend",
+    "aliases": [],
+    "path": ".agents/skills/spec-writer/SKILL.md",
+    "size": 2622,
+    "references": []
+  },
+  "subagent-executor": {
+    "name": "subagent-executor",
+    "description": "Isolated sub-agent dispatcher and task coordinator. Dispatches fresh, isolated sub-agents with dedicated prompts for independent tasks, performing rigorous post-task reviews without passing bloated session context. Use when executing independent multi-task plans. Triggers: $subagent-executor, dispatch-subagents:, 'subagent executor', 'dispatch subagents'.",
+    "category": "architecture",
+    "aliases": [],
+    "path": ".agents/skills/subagent-executor/SKILL.md",
+    "size": 2676,
+    "references": []
+  },
+  "supreme-orchestrator": {
+    "name": "supreme-orchestrator",
+    "description": "The Supreme Master Router for the entire Skill Brain. Evaluates user intent across all domains, enforces the confirmation policy (always/multi-skill/never), guarantees the frontend-baseline bundle on UI tasks, gates debugging with diagnostic plans, and routes $plan to domain planners. Triggers: $orchestrate, brain:, 'supreme orchestrator', 'orchestrate'.",
+    "category": "orchestrators",
+    "aliases": [],
+    "path": ".agents/skills/supreme-orchestrator/SKILL.md",
+    "size": 6971,
+    "references": []
+  },
+  "svg-icon-craftsman": {
+    "name": "svg-icon-craftsman",
+    "description": "Zero-slop SVG icon and vector graphic craftsman. Snaps vector geometry to a strict 24×24 grid with uniform 1.5px/2.0px strokes, clean integer coordinates, and semantic path structures, eliminating AI-generated bezier curve spaghetti. Use when creating or refining SVG icons and vector assets. Triggers: $icon, svg:, 'craft icon', 'svg craftsman', 'create icon'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/svg-icon-craftsman/SKILL.md",
+    "size": 4159,
+    "references": []
+  },
+  "swift-writer": {
+    "name": "swift-writer",
+    "description": "Modern Swift 6, strict concurrency, and native Apple engineering specialist. Implements structured concurrency (Sendable, Actors, @MainActor), Swift Testing suites, and modern Swift patterns with zero compiler warnings. Use for Swift, SwiftUI, or Apple platform development. Triggers: $swift, swift:, 'write swift', 'swift 6'.",
+    "category": "backend",
+    "aliases": [],
+    "path": ".agents/skills/swift-writer/SKILL.md",
+    "size": 2482,
+    "references": []
+  },
+  "tdd-implementer": {
+    "name": "tdd-implementer",
+    "description": "Test-Driven Development (TDD) red-green-refactor practitioner. Enforces writing minimal failing tests before writing production code, verifying tests fail for the right reason, writing minimal passing code, and refactoring cleanly. Use for any new business logic, algorithm, or bug fix. Triggers: $tdd, tdd:, 'test driven development', 'tdd loop'.",
+    "category": "backend",
+    "aliases": [],
+    "path": ".agents/skills/tdd-implementer/SKILL.md",
+    "size": 3372,
+    "references": []
+  },
+  "test-verifier": {
+    "name": "test-verifier",
+    "description": "Evidence-before-claims test verifier and build auditor. Runs verification or tests ONLY when explicitly commanded by the user ($test, $verify). Never run unsolicited tests or test logic unless asked. Triggers: $test, $verify, test:, evidence:, 'run tests', 'test logic'.",
+    "category": "debugging",
+    "aliases": [],
+    "path": ".agents/skills/test-verifier/SKILL.md",
+    "size": 3087,
+    "references": []
+  },
+  "text-tone-enforcer": {
+    "name": "text-tone-enforcer",
+    "description": "Senior-engineer text tone calibrator and conversational filler remover. Strips performative cheerleading, conversational fluff, and artificial cadence from documentation, PR descriptions, commit messages, and chat, enforcing direct, concise technical prose. Use on any technical writing. Triggers: $text-tone, tone:, 'calibrate tone', 'senior engineer tone'.",
+    "category": "anti-ai-sop",
+    "aliases": [],
+    "path": ".agents/skills/text-tone-enforcer/SKILL.md",
+    "size": 2586,
+    "references": []
+  },
+  "theme-system": {
+    "name": "theme-system",
+    "description": "Visual design theme architect and palette generator. Implements or adapts distinctive visual themes (Obsidian, Paper, Blueprint, Technical Monospace) using CSS custom properties, ensuring high contrast, clean dark/light switching, and consistent surface hierarchy. Use when applying or creating design themes. Triggers: $theme-system, theme:, 'apply theme', 'design theme'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/theme-system/SKILL.md",
+    "size": 2542,
+    "references": []
+  },
+  "ticket-breaker": {
+    "name": "ticket-breaker",
+    "description": "Tracer-bullet ticket decomposition engine. Deconstructs technical specifications into self-contained, dependency-ordered tracer-bullet tickets with explicit acceptance tests and blast-radius bounds. Use when breaking specs or epics into actionable implementation tickets. Triggers: $ticket-breaker, break-tickets:, 'break tickets', 'tracer bullet tickets'.",
+    "category": "backend",
+    "aliases": [],
+    "path": ".agents/skills/ticket-breaker/SKILL.md",
+    "size": 2669,
+    "references": []
+  },
+  "typography-master": {
+    "name": "typography-master",
+    "description": "Domain-tailored typographic scale and font archetype selector. Selects domain font archetypes (Swiss Neutral, High Editorial, Monospace Terminal, Humanist Sans) and calculates mathematical fluid clamp scales with calibrated tracking and measure. Use when setting up fonts, type scales, and reading rhythm. Triggers: $typography, type:, 'typography master', 'font archetype'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/typography-master/SKILL.md",
+    "size": 4735,
+    "references": []
+  },
+  "ui-design-principles": {
+    "name": "ui-design-principles",
+    "description": "Two-pass UI design reviewer and visual hierarchy auditor. Reviews UI layouts against the product brief, visual balance, typography rhythm, whitespace allocation, and contrast before building or shipping. Use when reviewing UI designs, checking visual composition, or planning pages. Triggers: $ui-principles, ui-design:, 'ui design principles', 'review design'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/ui-design-principles/SKILL.md",
+    "size": 4912,
+    "references": []
+  },
+  "ui-library-picker": {
+    "name": "ui-library-picker",
+    "description": "Opinionated UI component library selector. Recommends lean, accessible, headless component primitives (Radix, Sonner, cmdk, TanStack Table) based on functional requirements, avoiding bloated kitchen-sink UI kits. Use when selecting UI component libraries or frontend dependencies. Triggers: $ui-library, pick-ui-lib:, 'pick ui library', 'select component library'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/ui-library-picker/SKILL.md",
+    "size": 3040,
+    "references": []
+  },
+  "ui-prototyper": {
+    "name": "ui-prototyper",
+    "description": "Multi-variant UI prototyper and composition explorer. Builds 3 genuinely distinct UI variants (structural layout, density, typography hierarchy) behind a live visual switcher to allow visual comparison before settling on a design. Use when exploring UI directions or comparing layouts. Triggers: $ui-prototyper, prototype-ui:, 'prototype variants', 'ui prototyper'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/ui-prototyper/SKILL.md",
+    "size": 2427,
+    "references": []
+  },
+  "ui-stress-tester": {
+    "name": "ui-stress-tester",
+    "description": "Adversarial UI layout stress tester. Feeds worst-case data (extreme string lengths, non-Latin scripts, zero-state arrays, negative numbers, ultra-long URLs) into UI components to expose layout breaks, text clipping, and responsive failures. Use to stress-test components and pages before shipping. Triggers: $ui-stress-tester, stress-test-ui:, 'stress test ui', 'break layout'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/ui-stress-tester/SKILL.md",
+    "size": 3186,
+    "references": []
+  },
+  "ui-taste-enforcer": {
+    "name": "ui-taste-enforcer",
+    "description": "Anti-slop frontend art direction enforcer. Replaces generic web design clichés with subject-specific art direction, bespoke palettes, asymmetric layouts, and purposeful editorial typography. Use when designing or polishing web applications, marketing pages, or components. Triggers: $ui-taste, taste-enforcer:, 'ui taste', 'enforce taste'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/ui-taste-enforcer/SKILL.md",
+    "size": 6406,
+    "references": []
+  },
+  "ui-tells-eliminator": {
+    "name": "ui-tells-eliminator",
+    "description": "Code-level scanner and eliminator of AI visual design tells in CSS, HTML, and JSX. Intercepts and purges pill badges, uppercase eyebrow headers, floating purple/indigo blur blobs, uniform 3-card rows, and soft grey box-shadows. Use when building or reviewing frontend components. Triggers: $ui-tells, remove-tells:, 'eliminate ai tells', 'kill pill badges'.",
+    "category": "anti-ai-sop",
+    "aliases": [],
+    "path": ".agents/skills/ui-tells-eliminator/SKILL.md",
+    "size": 4031,
+    "references": []
+  },
+  "web-artifact-builder": {
+    "name": "web-artifact-builder",
+    "description": "Self-contained multi-component web application and artifact builder. Builds production-ready React/Tailwind/TypeScript web artifacts, interactive tools, dashboards, and simulators in a single cohesive architecture. Use when building standalone web applications, prototypes, or complex artifacts. Triggers: $web-artifact, build-artifact:, 'build web artifact', 'interactive app'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/web-artifact-builder/SKILL.md",
+    "size": 2763,
+    "references": []
+  },
+  "webapp-tester": {
+    "name": "webapp-tester",
+    "description": "Automated browser web application tester using Playwright. Formulates and executes automated browser test scripts across mobile and desktop viewports, validating responsive layouts, form interactions, navigation, and visual regression. Use for browser automation and end-to-end testing. Triggers: $webapp-tester, test-webapp:, 'test webapp', 'browser test', 'playwright test'.",
+    "category": "frontend",
+    "aliases": [],
+    "path": ".agents/skills/webapp-tester/SKILL.md",
+    "size": 3043,
+    "references": []
+  }
+}
