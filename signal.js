@@ -122,7 +122,8 @@ function setActive(name) {
   });
   if (window.agentSound) window.agentSound.play(name);
 }
-window.setTrafficLight = setActive;   // your own code can call this
+window.setAgentPulse = setActive;
+window.setTrafficLight = setActive;
 
 // Manual controls
 document.querySelectorAll(".controls button").forEach(b => {

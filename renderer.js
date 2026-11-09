@@ -57,8 +57,8 @@ function Signal({ name, size, bodyColour, mode, blink, agents }) {
   const tone = contrastInk(bodyColour);
   const activeLabel = mode ? (LAMPS.find(lamp => lamp.id === mode) || {}).label || "" : "";
   const label = mode
-    ? `${name || "Traffic light"}, ${activeLabel}${blink ? " blinking" : " lit"}`
-    : `${name || "Traffic light"}, all bulbs off`;
+    ? `${name || "AgentPulse"}, ${activeLabel}${blink ? " blinking" : " lit"}`
+    : `${name || "AgentPulse"}, all bulbs off`;
 
   return h("div", {
     className: `signal signal-${size}`,
@@ -149,7 +149,7 @@ function SetupScreen({ boot }) {
       h("header", { className: "setup-bar" },
         h("span", { className: "brand" },
           h("span", { className: "brand-mark", "aria-hidden": "true" }, h("i"), h("i"), h("i")),
-          "Agent Traffic Light"
+          "AgentPulse"
         ),
         h("button", {
           className: "window-close",
