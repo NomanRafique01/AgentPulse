@@ -194,43 +194,19 @@
   const speechQueue = [];
   let isSpeaking = false;
 
-  // Speech helper: speaks cleanly with modern natural voice (volume & mute controlled)
-  function speak(text, force = false) {
-    if (!text) return;
-    if (!force && (muted || volume <= 0)) return;
-    // In Electron, if speech synthesis is paused, resume it
-    if (typeof window !== "undefined" && window.speechSynthesis && window.speechSynthesis.paused) {
-      try { window.speechSynthesis.resume(); } catch {}
-    }
-    speechQueue.push({ text, force });
-    processSpeechQueue();
-  }
-
   function processSpeechQueue() {
     if (isSpeaking || speechQueue.length === 0) return;
-    if (typeof window === "undefined" || !window.speechSynthesis) {
+    if (muted || volume <= 0 || typeof window === "undefined" || !window.speechSynthesis) {
       speechQueue.length = 0;
       isSpeaking = false;
       return;
     }
-    const item = speechQueue.shift();
-    const text = typeof item === "string" ? item : item.text;
-    const force = typeof item === "object" ? Boolean(item.force) : false;
-
-    if (!force && (muted || volume <= 0)) {
-      setTimeout(processSpeechQueue, 50);
-      return;
-    }
-
+    const text = speechQueue.shift();
     try {
-      if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
-      }
       const u = new SpeechSynthesisUtterance(text);
       const voice = pickBestVoice();
       if (voice) u.voice = voice;
-      const vol = force ? Math.max(0.65, Number(volume) || 0.65) : Math.min(1.0, Math.max(0.1, volume));
-      u.volume = vol;
+      u.volume = Math.min(1.0, Math.max(0, volume));
       u.rate   = 1.05; // modern, fluent pacing
       u.pitch  = 1.0;
       isSpeaking = true;
@@ -248,21 +224,16 @@
     }
   }
 
-  // Trigger the urgent voice alert: Agent needs input
+  // Speech helper: speaks cleanly with modern natural voice (volume & mute controlled)
+  function speak(text) {
+    if (!text || muted || volume <= 0) return;
+    speechQueue.push(text);
+    processSpeechQueue();
+  }
+
+  // Trigger the 4s voice alert: only agent speaks, no LED sound
   function triggerNeedInputAlert() {
-    speak("Agent needs input.", true);
-  }
-
-  // CANCELLED — muted short descending tone
-  function soundCancelled() {
-    tone(440, 0,    0.22, 0.25, "sine");
-    tone(370, 0.08, 0.28, 0.22, "sine");
-    tone(293, 0.16, 0.40, 0.18, "sine");
-  }
-
-  // IDLE — very soft ambient tick
-  function soundIdle() {
-    tone(523.25, 0, 0.08, 0.05, "sine");
+    speak("Agent needs your input.");
   }
 
   // RED (error / stopped / finished) — rich bell chord, clean finish
@@ -297,10 +268,6 @@
     thinkTimer = null;
     clearInterval(thinkRepeat);
     thinkRepeat = null;
-    // Flush any queued speech (e.g. pending "needs input" after agent resumes)
-    speechQueue.length = 0;
-    isSpeaking = false;
-    try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch {}
   }
 
   // ─── State → sound mapping ─────────────────────────────────────────────────
@@ -322,38 +289,20 @@
     if (name === lastPlayed && !isFileAction) return;   // same state: stay quiet
     if (isFileAction && file === lastEditedFile && name === lastPlayed) return; // same file already announced
     lastPlayed = name;
-    // After a file action, pre-set lastPlayed to think-blink so returning to thinking stays silent
-    if (isFileAction) lastPlayed = "think-blink";
     lastEditedFile = isFileAction ? file : "";
     stopAll();
 
     switch (name) {
       case "think":
-        soundThinking(); // LED sound generates on light shift to green
-        // After 6s of continuous green thinking, only agent speaks (no LED sound)
-        thinkTimer = setTimeout(() => {
-          speak("Agent is fixing.");
-          // Then every 12s after that, only agent speaks (no LED sound)
-          thinkRepeat = setInterval(() => {
-            speak("Still fixing.");
-          }, 12000);
-        }, 6000);
+        soundThinking();
         break;
 
       case "think-blink":
         soundThinking();
         break;
 
-      case "idle":
-        soundIdle();
-        break;
-
       case "green":
         soundGreen();
-        break;
-
-      case "terminal":
-        soundTerminal();
         break;
 
       case "read-file":
@@ -383,31 +332,17 @@
 
       case "ask":
       case "yellow":
-        // Immediate light chime cue + immediate speech
+        // Immediate light cue + immediate voice (no delay)
         soundAskArrival();
         triggerNeedInputAlert();
-        // Repeat every 6 seconds until user responds
+        // Keep repeating every 4s until state changes
         repeatTimer = setInterval(() => {
           triggerNeedInputAlert();
-        }, 6000);
-        break;
-
-      case "cancelled":
-        soundCancelled();
-        speak("Stopped.");
-        break;
-
-      case "error":
-        soundError();
-        speak("Agent encountered an error.");
+        }, 4000);
         break;
 
       case "red":
         soundDone();
-        // After 2s confirm task is done (only if still red — guard with lastPlayed check)
-        thinkTimer = setTimeout(() => {
-          if (lastPlayed === "red") speak("Task executed.");
-        }, 2000);
         break;
 
       case "blink-red":

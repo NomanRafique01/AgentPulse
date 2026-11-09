@@ -33,7 +33,7 @@ let cliLauncherReady = false;
 
 function runtimeFor(light) {
   if (!light.runtime) {
-    light.runtime = { agents: new Map(), hasSignal: false, lastSent: "", test: null, stopReason: "" };
+    light.runtime = { agents: new Map(), hasSignal: false, lastSent: "", test: null };
   }
   return light.runtime;
 }
@@ -89,7 +89,6 @@ function pruneAgents(light) {
       if (now - agent.updatedAt > THINKING_TIMEOUT) {
         agent.state = "stopped";
         agent.updatedAt = now;
-        runtime.stopReason = "cancelled";
         light.lastSignal = "red";
       }
     } else if (now - agent.updatedAt > TEN_MINUTES) {
@@ -117,53 +116,34 @@ function buildLightState(light) {
   let mode = "";
   let blink = false;
   let question = null;
-  let agentMode = ""; // fine-grained mode for renderer animations & sounds
-
   if (asking) {
     mode = "yellow";
     blink = true;
-    agentMode = "asking";
     question = asking.question || null;
   } else if (agents.some(agent => agent.state === "running_terminal")) {
     mode = "yellow";
     blink = true;
-    agentMode = "terminal";
   } else if (agents.some(agent => agent.state === "writing_file")) {
     mode = "green";
     blink = true;
-    agentMode = "writing";
   } else if (agents.some(agent => agent.state === "reading_file")) {
     mode = "green";
     blink = true;
-    agentMode = "reading";
   } else if (agents.some(agent => agent.state === "thinking" || agent.state === "working")) {
     mode = "green";
     blink = true;
-    agentMode = "thinking";
-  } else if (agents.some(agent => agent.state === "error")) {
+  } else if (agents.some(agent => agent.state === "error" || agent.state === "stopped" || agent.state === "finished")) {
     mode = "red";
     blink = false;
-    agentMode = "error";
-  } else if (agents.some(agent => agent.state === "stopped" || agent.state === "finished")) {
-    mode = "red";
-    blink = false;
-    agentMode = runtime.stopReason === "cancelled" ? "cancelled" : "done";
   } else if (agents.length) {
     mode = "red";
     blink = false;
-    agentMode = "done";
-  } else if (runtime.hasSignal && !light.closed) {
-    // Connected but no active agent — idle breathing green
-    mode = "green";
-    blink = false;
-    agentMode = "idle";
   }
 
   const test = runtime.test && runtime.test.until > Date.now() ? runtime.test : null;
   if (test) {
     mode = test.mode;
     blink = false;
-    agentMode = "";
     question = null;
   }
 
@@ -179,7 +159,6 @@ function buildLightState(light) {
   return {
     mode: mode || light.lastSignal || "",
     blink: Boolean(blink),
-    agentMode,
     asking: Boolean(asking),
     question,
     file,
@@ -559,7 +538,6 @@ function applyAgentSignal(light, body) {
 
   if (isTerminal) {
     // When stopping, manual cancellation, or termination, clear all active working states
-    runtime.stopReason = body.reason || (state === "error" ? "error" : (body.event === "Cancel" || body.event === "Abort" ? "cancelled" : "clean"));
     runtime.agents.clear();
     runtime.agents.set(conversationId, {
       state: state === "error" ? "error" : "stopped",
@@ -573,7 +551,6 @@ function applyAgentSignal(light, body) {
   }
 
   // When a new turn or tool begins, clear any stopped state
-  runtime.stopReason = "";
   for (const [id, agent] of runtime.agents) {
     if (agent.state === "stopped" || agent.state === "finished") {
       runtime.agents.delete(id);
@@ -1119,7 +1096,7 @@ ipcMain.handle("light:close", (_event, id) => {
 ipcMain.handle("light:manual-stop", (_event, id) => {
   const light = config.lights.find(item => item.id === id) || (config.lights.length ? config.lights[0] : null);
   if (!light) return { ok: false };
-  applyAgentSignal(light, { event: "Stop", state: "stopped", reason: "cancelled" });
+  applyAgentSignal(light, { event: "Stop", state: "stopped" });
   return { ok: true };
 });
 

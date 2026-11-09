@@ -53,25 +53,13 @@ function baseName(folder) {
   return parts[parts.length - 1] || String(folder || "");
 }
 
-function Signal({ name, size, bodyColour, mode, blink, agentMode, agents, onClick, active, muted, volume, draggable, onToggleDrag, onToggleMute, onVolumeChange, onManualStop }) {
+function Signal({ name, size, bodyColour, mode, blink, agents, onClick, active, muted, volume, draggable, onToggleDrag, onToggleMute, onVolumeChange, onManualStop }) {
   const tone = contrastInk(bodyColour);
   const activeLabel = mode ? (LAMPS.find(lamp => lamp.id === mode) || {}).label || "" : "";
   const label = mode
     ? `${name || "AgentPulse"}, ${activeLabel}${blink ? " blinking" : " lit"}`
     : `${name || "AgentPulse"}, all bulbs off`;
   const volumePct = Math.round((Number(volume) || 0) * 100);
-
-  const getAnimationClass = (lampId) => {
-    if (mode !== lampId) return "";
-    if (agentMode === "idle" && lampId === "green") return " is-breathe";
-    if (agentMode === "writing" && lampId === "green") return " is-blink-write";
-    if (agentMode === "reading" && lampId === "green") return " is-blink-read";
-    if (agentMode === "cancelled" && lampId === "red") return " is-arrive-cancel";
-    if (agentMode === "done" && lampId === "red") return " is-arrive";
-    if (agentMode === "error" && lampId === "red") return " is-blink is-error";
-    if (blink) return " is-blink";
-    return "";
-  };
 
   return h("div", {
     className: `signal signal-${size}${active ? " is-active" : ""}${onClick ? " is-interactive" : ""}${draggable ? " is-draggable" : ""}`,
@@ -96,7 +84,7 @@ function Signal({ name, size, bodyColour, mode, blink, agentMode, agents, onClic
     h("div", { className: "lens-row" },
       LAMPS.map(lamp => h("div", {
         key: lamp.id,
-        className: `lens lens-${lamp.id}${mode === lamp.id ? " is-on" : ""}${getAnimationClass(lamp.id)}`,
+        className: `lens lens-${lamp.id}${mode === lamp.id ? " is-on" : ""}${mode === lamp.id && blink ? " is-blink" : ""}`,
         onClick: lamp.id === "red" && (mode === "green" || mode === "yellow" || (mode === "red" && blink))
           ? (e) => {
               e.stopPropagation();
@@ -650,21 +638,16 @@ function LightWindow({ boot }) {
 
   React.useEffect(() => {
     const deriveSoundName = (next) => {
-      // Direct fine-grained agent modes
-      if (next.agentMode === "cancelled") return "cancelled";
-      if (next.agentMode === "error")     return "error";
-      if (next.agentMode === "idle")      return "idle";
-
-      // All yellow states wait for user response — always use "ask" path (immediate prompt)
-      if (next.asking || next.question || next.agentMode === "asking") return "ask";
-      if (next.agentMode === "terminal")  return "terminal";
-      if (next.mode === "yellow")         return "ask";   // includes yellow states waiting on input
-      if (next.fileAction === "read" || next.agentMode === "reading") return "read-file";
-      if (next.fileAction === "write" || next.agentMode === "writing") return "write-file";
+      // All yellow states wait for user response — always use "ask" path (4s voice timer)
+      // This covers: ask_question, ask_permission, multi-choice, terminal input, permission dialogs
+      if (next.asking || next.question)   return "ask";
+      if (next.mode === "yellow")         return "ask";   // includes blink-yellow (terminal blocked on input)
+      if (next.fileAction === "read")     return "read-file";
+      if (next.fileAction === "write")    return "write-file";
       // green+blink with no fileAction = thinking/working
       if (next.mode === "green" && next.blink && !next.fileAction) return "think-blink";
-      if (next.mode === "green")          return "think"; // solid green
-      if (next.mode === "red")            return "red";   // clean done / finished
+      if (next.mode === "green")          return "think"; // solid green (legacy / manual)
+      if (next.mode === "red")            return "red";   // solid red = stopped/done
       return "off";
     };
 
@@ -797,7 +780,6 @@ function LightWindow({ boot }) {
         bodyColour: light.bodyColour,
         mode: signal.mode,
         blink: signal.blink,
-        agentMode: signal.agentMode,
         agents: signal.agents,
         active: panelOpen,
         muted,
@@ -808,7 +790,7 @@ function LightWindow({ boot }) {
         onVolumeChange: handleVolumeChange,
         onManualStop: () => {
           // Optimistically turn red immediately — don't wait for the IPC round-trip
-          setSignal(prev => ({ ...prev, mode: "red", blink: false, agentMode: "cancelled", question: null, asking: false }));
+          setSignal(prev => ({ ...prev, mode: "red", blink: false, question: null, asking: false }));
           ipcRenderer.invoke("light:manual-stop", light.id);
         },
         onClick: handleTogglePanel
